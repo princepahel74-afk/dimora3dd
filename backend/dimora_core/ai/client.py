@@ -139,8 +139,8 @@ class AIClient:
             return ["ollama"]
         if self.provider == "openrouter":
             return ["openrouter"] if self._quota_ok(consume=False) else []
-        if self.provider == "cloudflare":
-            return ["cloudflare"] if self._quota_ok(consume=False) else []
+        if self.provider == "cloudflare":  # without an account ID and token there is nothing to call: report "not connected"
+            return ["cloudflare"] if self.cf_configured and self._quota_ok(consume=False) else []
         out = []
         if self.cf_configured and self._quota_ok(consume=False):
             out.append("cloudflare")

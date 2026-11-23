@@ -75,9 +75,14 @@ def test_cloudflare_bad_token_and_account_give_clear_errors(cf):
     assert not cf  # nothing reached the model
 
 
-def test_cloudflare_needs_both_account_and_token(cf, monkeypatch):
+def test_cloudflare_needs_both_account_and_token(cf, monkeypatch, client):
     monkeypatch.setattr(settings, "cloudflare_account", "")
     assert AIClient(provider="auto").order() == []
+    assert AIClient(provider="cloudflare").order() == []  # forced but not set up: "not connected", not a broken AI
+    monkeypatch.setattr(settings, "ai_provider", "cloudflare")
+    assert client.get("/api/health").get_json()["ai"]["active"] is None
+    r = client.post("/api/ai/ideas", json={"rooms": []})
+    assert r.status_code == 503 and r.get_json()["error"] == "ai_unavailable"
 
 
 def test_assistant_endpoint_runs_on_cloudflare(cf, client):
