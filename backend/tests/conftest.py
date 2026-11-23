@@ -18,7 +18,8 @@ SAMPLES = ROOT.parent / "samples"
 
 from dimora_core.config import settings  # noqa: E402
 
-settings.gemini_key = ""          # tests never call real hosted AI, whatever is in the environment
+settings.cloudflare_token = ""    # tests never call real hosted AI, whatever is in the environment
+settings.cloudflare_account = ""
 settings.openrouter_key = ""
 from app import create_app  # noqa: E402
 from dimora_core.ai.client import AIClient  # noqa: E402

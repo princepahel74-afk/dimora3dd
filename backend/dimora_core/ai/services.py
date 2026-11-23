@@ -1,4 +1,4 @@
-"""What DIMORA asks the AI (Gemini by default) to do. Each function builds a prompt, calls the model and
+"""What DIMORA asks the AI (Cloudflare Workers AI by default) to do. Each function builds a prompt, calls the model and
 validates the JSON it returns (the model never edits the home directly)."""
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ Respond with ONLY valid JSON: {{"plan_width_m": number|null, "rooms_full":[{{"na
 
 
 def read_plan_v2(ai: AIClient, image_b64: str) -> tuple[dict, list[str]]:
-    """Gemini reads the whole plan into the strict v2 JSON format (feet), validated. See plan_schema.py."""
+    """The AI reads the whole plan into the strict v2 JSON format (feet), validated. See plan_schema.py."""
     from . import plan_schema
     out = ai.ask_json(plan_schema.PROMPT, [image_b64], temperature=0.1, max_tokens=8192, schema=plan_schema.SCHEMA)
     return plan_schema.validate(out)
@@ -142,7 +142,7 @@ def report_summary(ai: AIClient, facts: str, room_facts: str) -> str:
 
 
 def layout_ideas(ai: AIClient, budget: str, family: str, style: str, styles, rooms) -> list:
-    """Three different interior / layout options for this home (Gemini). Each one is something DIMORA can preview:
+    """Three different interior / layout options for this home (from the AI). Each one is something DIMORA can preview:
     a style, a furniture tier, and optional room-use changes (e.g. turn the store into a study)."""
     styles = [str(s) for s in styles][:20] or ["Modern", "Japandi", "Indian Contemporary"]
     room_list = "; ".join(f"{r.get('name')} ({r.get('type')}, {r.get('w')}x{r.get('d')} m)" for r in (rooms or [])[:40])

@@ -99,7 +99,7 @@ def _overlay(rd, img, off):
 
 
 def detect_v2(img, ai: AIClient, width_m: float, log):
-    """Gemini reads the whole drawing in the strict v2 format (rooms + outside areas, in feet). Returns a detect()
+    """The AI (Cloudflare Workers AI) reads the whole drawing in the strict v2 format (rooms + outside areas, in feet). Returns a detect()
     result, or None when the reading is not complete enough (the caller then uses CV + AI labels as before)."""
     from .ai import plan_schema
     log(f"Asking {ai.label()} to read the whole plan (rooms, sizes, walls, doors, windows, garden, parking) as structured JSON…")
@@ -123,7 +123,7 @@ def detect_v2(img, ai: AIClient, width_m: float, log):
     for w in warn:
         log(w)
     f, ex = plan_schema.to_floor(plan)
-    # every room reachable (keeps Gemini's doors); gardens and parking are reached from outside, so leave them out
+    # every room reachable (keeps the AI's doors); gardens and parking are reached from outside, so leave them out
     house = dict(f, rooms=[r for r in f["rooms"] if r["type"] not in ("parking", "garden")])
     auto_openings(house, windows=False, repair_only=True)
     f["doors"] = house["doors"]
@@ -134,11 +134,11 @@ def detect_v2(img, ai: AIClient, width_m: float, log):
     rd["mpp"] = width / rd["px_w"] if rd["px_w"] else 0.02
     f["overlay"] = _overlay(rd, img, [0, 0])
     outs = [r for r in f["rooms"] if r["type"] in ("parking", "garden", "balcony", "porch")]
-    note = (f"Gemini structured reading · {plan['house']['width_ft']:g} × {plan['house']['depth_ft']:g} ft house · "
+    note = (f"AI structured reading · {plan['house']['width_ft']:g} × {plan['house']['depth_ft']:g} ft house · "
             f"built-up {ex['built_up_sqft']:g} sq ft")
     log(f"Built {len(f['rooms']) - len(outs)} rooms and {len(outs)} outside areas, {len(f['doors'])} doors, {len(f['windows'])} windows · {note}")
     return {"floors": [f], "wall_thickness": ex["wall_thickness"], "scale_note": note, "log": None, "ai": ai.used,
-            "source": "Gemini (structured)", "north": ex["north"], "site": ex["site"], "built_up_sqft": ex["built_up_sqft"]}
+            "source": "Cloudflare AI (structured)", "north": ex["north"], "site": ex["site"], "built_up_sqft": ex["built_up_sqft"]}
 
 
 def detect(uploads, width_m: float = 0, forced_floors: int = 0, use_ai: bool = True, ai: AIClient | None = None, default_width: float = 12.0):
@@ -147,7 +147,7 @@ def detect(uploads, width_m: float = 0, forced_floors: int = 0, use_ai: bool = T
     log = log_lines.append
     if ai is not None and (not use_ai or not ai.order()):
         if use_ai:
-            log("No AI provider available (no Gemini key, Ollama not running, no OpenRouter key) — using computer vision only.")
+            log("No AI provider available (no Cloudflare account/token, Ollama not running, no OpenRouter key) — using computer vision only.")
         ai = None
     sheets = [s for name, data in uploads for s in load_upload(name, data)]
     forced = forced_floors if len(sheets) == 1 else 0

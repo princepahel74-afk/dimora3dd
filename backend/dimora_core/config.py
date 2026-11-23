@@ -23,14 +23,17 @@ _load_dotenv()
 
 
 class Settings:
-    # "auto" tries the local Ollama server first, then OpenRouter. "ollama" / "openrouter" force one.
+    # "auto" tries Cloudflare Workers AI first, then the local Ollama server, then OpenRouter.
+    # "cloudflare" / "ollama" / "openrouter" force one.
     ai_provider = os.getenv("DIMORA_AI_PROVIDER", "auto")
     ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
     ollama_model = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
-    # Google Gemini (main AI): free key from https://aistudio.google.com/apikey
-    gemini_key = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
-    gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
-    gemini_url = os.getenv("GEMINI_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
+    # Cloudflare Workers AI (main AI). Dashboard → AI → Workers AI → "Use REST API" gives both values:
+    # the 32-character account ID and an API token with the "Workers AI" permission.
+    cloudflare_account = (os.getenv("CLOUDFLARE_ACCOUNT_ID", "") or os.getenv("CF_ACCOUNT_ID", "")).strip()
+    cloudflare_token = (os.getenv("CLOUDFLARE_API_TOKEN", "") or os.getenv("CF_API_TOKEN", "")).strip()
+    cloudflare_model = os.getenv("CLOUDFLARE_MODEL", "@cf/qwen/qwen3.8-27b")
+    cloudflare_url = os.getenv("CLOUDFLARE_API_URL", "https://api.cloudflare.com/client/v4")
     openrouter_url = os.getenv("OPENROUTER_URL", "https://openrouter.ai/api/v1")
     openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
     openrouter_model = os.getenv("OPENROUTER_MODEL", "qwen/qwen3.5-27b")
@@ -39,12 +42,12 @@ class Settings:
     port = int(os.getenv("PORT") or os.getenv("DIMORA_PORT", "8000"))  # hosts like Render set PORT
     max_upload_mb = int(os.getenv("DIMORA_MAX_UPLOAD_MB", "25"))
     # Public site mode: visitors can't point the server at their own URLs, and AI calls that use the
-    # server's OpenRouter key are rate-limited (visitors who paste their own key are not limited).
+    # server's Cloudflare / OpenRouter key are rate-limited (visitors who paste their own key are not limited).
     public = os.getenv("DIMORA_PUBLIC", "0").lower() in ("1", "true", "yes", "on")
     ai_per_hour = int(os.getenv("DIMORA_AI_PER_HOUR", "20"))    # per visitor IP, 0 = unlimited
     ai_per_day = int(os.getenv("DIMORA_AI_PER_DAY", "500"))     # whole site, 0 = unlimited
-    # "Make it Real" photos (Gemini image model) — each costs more than a chat reply, so each user gets a few a day
-    gemini_image_model = os.getenv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image")
+    # "Make it Real" photos (a FLUX.2 image model on Workers AI) — each costs more than a chat reply, so each user gets a few a day
+    cloudflare_image_model = os.getenv("CLOUDFLARE_IMAGE_MODEL", "@cf/black-forest-labs/flux-2-klein-9b")
     photos_per_day = int(os.getenv("DIMORA_PHOTOS_PER_DAY", "12"))  # enough for one showcase (exterior + ~7 rooms)
 
 

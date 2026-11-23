@@ -7,4 +7,4 @@
 
 The Flask backend runs at the same domain. Its authenticated status endpoint is `/api/health`, and Render checks startup with `/healthz`.
 
-To enable Gemini features, add your `GEMINI_API_KEY` in the service's Render Environment settings. For persistent server-side accounts and projects, set `DATABASE_URL` to your Postgres connection string. The preview runs without either optional setting.
+To enable the AI features, set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (a Cloudflare API token with the Workers AI permission) in the service's Render Environment settings. Render asks for both when you apply the Blueprint. For persistent server-side accounts and projects, set `DATABASE_URL` to your Postgres connection string. The preview runs without either optional setting.

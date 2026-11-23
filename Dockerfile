@@ -1,7 +1,7 @@
 # DIMORA — one container serving the website and the API. Works on Railway, Fly.io, Koyeb, Google
-# Cloud Run, a VPS, or Render (Docker runtime).  docker build -t dimora . && docker run -p 8000:8000 -e GEMINI_API_KEY=… dimora
+# Cloud Run, a VPS, or Render (Docker runtime).  docker build -t dimora . && docker run -p 8000:8000 -e CLOUDFLARE_ACCOUNT_ID=… -e CLOUDFLARE_API_TOKEN=… dimora
 FROM python:3.11-slim
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8000 DIMORA_PUBLIC=1 DIMORA_AI_PROVIDER=gemini
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8000 DIMORA_PUBLIC=1 DIMORA_AI_PROVIDER=cloudflare
 RUN useradd -m -u 1000 dimora
 WORKDIR /app
 COPY backend/requirements.txt backend/requirements.txt

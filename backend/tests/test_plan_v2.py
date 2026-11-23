@@ -1,4 +1,4 @@
-"""Phase 1: Gemini reads the 2BHK test plan in the structured v2 format and DIMORA builds it exactly."""
+"""Phase 1: the AI (Cloudflare Workers AI) reads the 2BHK test plan in the structured v2 format and DIMORA builds it exactly."""
 import json
 import sys
 import threading
@@ -8,7 +8,7 @@ import pytest
 from werkzeug.serving import make_server
 
 sys.path.insert(0, str(Path(__file__).parent))
-import fake_gemini  # noqa: E402
+import fake_cloudflare  # noqa: E402
 from dimora_core import pipeline  # noqa: E402
 from dimora_core.ai import plan_schema  # noqa: E402
 from dimora_core.ai.client import AIClient  # noqa: E402
@@ -20,20 +20,21 @@ FT = 0.3048
 
 @pytest.fixture(scope="module")
 def server():
-    srv = make_server("127.0.0.1", 11603, fake_gemini.app)
+    srv = make_server("127.0.0.1", 11603, fake_cloudflare.app)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
-    yield "http://127.0.0.1:11603/v1beta/openai"
+    yield "http://127.0.0.1:11603/client/v4"
     srv.shutdown()
 
 
 @pytest.fixture()
 def ai(server, monkeypatch):
-    monkeypatch.setattr(settings, "gemini_url", server)
-    monkeypatch.setattr(settings, "gemini_key", "test-gemini")
-    monkeypatch.setattr(settings, "gemini_model", "gemini-3.8-flash")
+    monkeypatch.setattr(settings, "cloudflare_url", server)
+    monkeypatch.setattr(settings, "cloudflare_account", fake_cloudflare.ACCOUNT)
+    monkeypatch.setattr(settings, "cloudflare_token", "test-cloudflare")
+    monkeypatch.setattr(settings, "cloudflare_model", "@cf/qwen/qwen3.8-27b")
     monkeypatch.setattr(AIClient, "ollama_models", lambda self: None)
-    fake_gemini.SEEN.clear()
-    return AIClient(provider="gemini")
+    fake_cloudflare.SEEN.clear()
+    return AIClient(provider="cloudflare")
 
 
 def ft(r):
@@ -53,8 +54,8 @@ def test_validate_fills_defaults_and_drops_junk():
 
 def test_structured_reading_of_the_test_plan(ai):
     res = pipeline.detect([(PLAN.name, PLAN.read_bytes())], ai=ai)
-    assert res["source"] == "Gemini (structured)"
-    assert fake_gemini.SEEN[0]["format"] == "json_schema" and fake_gemini.SEEN[0]["images"] == 1
+    assert res["source"] == "Cloudflare AI (structured)"
+    assert fake_cloudflare.SEEN[0]["format"] == "json_schema" and fake_cloudflare.SEEN[0]["images"] == 1
     f = res["floors"][0]
     by = {r["name"]: r for r in f["rooms"]}
     want = {"Living Room": (18, 16), "Dining": (18, 12), "Kitchen": (12, 10), "Bedroom 1": (18, 12), "Bedroom 2": (18, 12),

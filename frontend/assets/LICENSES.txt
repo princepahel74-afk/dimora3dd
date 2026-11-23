@@ -24,5 +24,6 @@ Libraries loaded from CDNs at run time
 
 AI
 --
-Google Gemini (Gemini API) is used under Google's Gemini API Terms of Service. Images made by Gemini image models
-carry Google's SynthID watermark.
+Cloudflare Workers AI is used under Cloudflare's terms of service. Each model DIMORA calls on Workers AI (the chat and
+vision model, and the FLUX.2 image model by Black Forest Labs for "Make it Real" photos) is used under the terms and
+licence linked from that model's page at https://developers.cloudflare.com/workers-ai/models/.

@@ -1404,7 +1404,7 @@ const TIERS = ['budget', 'standard', 'premium'];
 /* ---------- application state ---------- */
 const S = {
   prefs: { style: 'Japandi', budget: 1000000, colors: ['#b5c4a8', '#e3d4b8'], family: 4, pets: false, kids: false, wfh: true, storage: 'medium', furniture: 'standard', onboarded: false },
-  backendUrl: '', aiProvider: 'auto', gemKey: '', gemModel: 'gemini-3.8-flash', orKey: '', orModel: 'qwen/qwen3.5-27b', ollamaModel: 'qwen3.5:9b', backend: null, backendOK: false, backendAt: 0,
+  backendUrl: '', aiProvider: 'auto', cfToken: '', cfAccount: '', cfModel: '', orKey: '', orModel: 'qwen/qwen3.5-27b', ollamaModel: 'qwen3.5:9b', backend: null, backendOK: false, backendAt: 0,
   project: null, sel: null, view: '3d', panel: 'design', history: [], future: [], variants: [], original: null,
   hour: 10, cutaway: false, roof: false, labels: true, overlay: 'none', projects: [], structuralLog: [],
 };
@@ -2417,7 +2417,7 @@ async function readPlan(url, opts = {}) {
       (gem.extra_rooms || []).forEach((g, i) => { const b = pct(g.bbox, i, 'X'); if (b) pxRooms.push(Object.assign(b, { name: g.name, type: g.type })); });
     }
   }
-  if (!pxRooms.length) throw new Error('No rooms could be detected. Try a cleaner, high-contrast plan (dark walls on white) or start the DIMORA backend with Gemini AI.');
+  if (!pxRooms.length) throw new Error('No rooms could be detected. Try a cleaner, high-contrast plan (dark walls on white) or start the DIMORA backend with Cloudflare AI.');
   // a room labelled "staircase" is circulation space
   pxRooms.forEach(r => { if (/stair/i.test(r.name || '')) r.type = 'hall'; });
   const pxStairs = gem && Array.isArray(gem.stairs) ? gem.stairs.map((b, i) => pct(b, i, 'S')).filter(Boolean) : [];
@@ -2716,16 +2716,16 @@ function drawSheetImage(project) {
 }
 
 /* ===================== GEMMA 4 CLIENT + ARIA ASSISTANT ===================== */
-/* The DIMORA engine lives in a Python backend (backend/app.py). The AI is Google Gemini (free key from
-   Google AI Studio); local Qwen through Ollama and OpenRouter remain as fallbacks. The backend picks. */
-const GEM_MODELS = { 'gemini-3.8-flash': 'Gemini 3.8 Flash — recommended', 'gemini-3.5-flash': 'Gemini 3.5 Flash — stable' };
-const OR_MODELS = { 'google/gemini-3.8-flash': 'Gemini 3.8 Flash (via OpenRouter)', 'qwen/qwen3.5-27b': 'Qwen3.5 27B', 'qwen/qwen3.5-9b': 'Qwen3.5 9B — cheapest', 'qwen/qwen3-vl-235b-a22b-instruct': 'Qwen3-VL 235B — most accurate' };
+/* The DIMORA engine lives in a Python backend (backend/app.py). The AI is Cloudflare Workers AI (account ID +
+   API token from the Cloudflare dashboard); local Qwen through Ollama and OpenRouter remain as fallbacks. The backend picks. */
+const CF_MODELS = { '@cf/qwen/qwen3.8-27b': 'Qwen3.8 27B — recommended', '@cf/meta/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout — fastest', '@cf/mistralai/mistral-small-3.1-24b-instruct': 'Mistral Small 3.1 24B' };
+const OR_MODELS = { 'qwen/qwen3.5-27b': 'Qwen3.5 27B', 'qwen/qwen3.5-9b': 'Qwen3.5 9B — cheapest', 'qwen/qwen3-vl-235b-a22b-instruct': 'Qwen3-VL 235B — most accurate' };
 const PRIVATE_HOST = document.querySelector('meta[name="dimora-hosting"]')?.content === 'private';
 const SAME_ORIGIN_API = document.querySelector('meta[name="dimora-api"]')?.content === 'same-origin';
 const PRIVATE_PROFILE = { loggedIn: true, name: 'Private workspace', method: 'local', answers: { done: true } };
 const API = {
   base() { const b = (S.backendUrl || '').trim().replace(/\/+$/, ''); if (b) return b; return /^https?:$/.test(location.protocol) && !/claude|claudeusercontent/.test(location.hostname) ? location.origin : 'http://127.0.0.1:8000'; },
-  headers(extra = {}) { const h = Object.assign({}, extra); if (CLOUD.token) h.Authorization = 'Bearer ' + CLOUD.token; if (S.aiProvider && S.aiProvider !== 'auto') h['X-AI-Provider'] = S.aiProvider; if (S.gemKey) h['X-Gemini-Key'] = S.gemKey; if (S.gemModel) h['X-Gemini-Model'] = S.gemModel; if (S.orKey) h['X-OpenRouter-Key'] = S.orKey; if (S.orModel) h['X-OpenRouter-Model'] = S.orModel; if (S.ollamaModel) h['X-Ollama-Model'] = S.ollamaModel; return h; },
+  headers(extra = {}) { const h = Object.assign({}, extra); if (CLOUD.token) h.Authorization = 'Bearer ' + CLOUD.token; if (S.aiProvider && S.aiProvider !== 'auto') h['X-AI-Provider'] = S.aiProvider; if (S.cfToken) h['X-Cloudflare-Token'] = S.cfToken; if (S.cfAccount) h['X-Cloudflare-Account'] = S.cfAccount; if (S.cfModel) h['X-Cloudflare-Model'] = S.cfModel; if (S.orKey) h['X-OpenRouter-Key'] = S.orKey; if (S.orModel) h['X-OpenRouter-Model'] = S.orModel; if (S.ollamaModel) h['X-Ollama-Model'] = S.ollamaModel; return h; },
   async req(path, { body, form, method, timeout = 120000 } = {}) {
     if (PRIVATE_HOST && !SAME_ORIGIN_API && !S.backendUrl?.trim()) {
       const error = new Error('Set a DIMORA backend URL in Settings to use this feature.');
@@ -2750,7 +2750,7 @@ const API = {
   },
 };
 const aiOn = () => !!(S.backendOK && S.backend && S.backend.ai && S.backend.ai.active);
-function modelLabel() { if (!S.backendOK) return 'in-browser engine (backend offline)'; const a = S.backend && S.backend.ai; if (!a || !a.active) return 'rule-based engine (no AI connected)'; return a.active === 'gemini' ? `Google Gemini · ${a.gemini.model}` : a.active === 'ollama' ? `Qwen · ${a.ollama.model} (local)` : `OpenRouter · ${a.openrouter.model}`; }
+function modelLabel() { if (!S.backendOK) return 'in-browser engine (backend offline)'; const a = S.backend && S.backend.ai; if (!a || !a.active) return 'rule-based engine (no AI connected)'; return a.active === 'cloudflare' ? `Cloudflare Workers AI · ${String(a.cloudflare.model).split('/').pop()}` : a.active === 'ollama' ? `Qwen · ${a.ollama.model} (local)` : `OpenRouter · ${a.openrouter.model}`; }
 function projectGeometry(pj = P()) { return { floors: pj.floors.map(f => ({ id: f.id, name: f.name, level: f.level, height: f.height, rooms: f.rooms.map(r => ({ id: r.id, name: r.name, type: r.type, x: r.x, y: r.y, w: r.w, d: r.d, group: r.group || null })), doors: f.doors, windows: f.windows, stairs: f.stairs || [], stair_rects: f._stairRects || [] })) }; }
 function dataURLtoBlob(url) { const [h, b] = url.split(','); const mime = (/data:([^;]+)/.exec(h) || [])[1] || 'image/png'; const bin = atob(b); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: mime }); }
 function extractJSON(t) {
@@ -3025,7 +3025,7 @@ function helpReply(text) {
   if (/(hi|hello|hey|namaste)\b/i.test(text)) return `Namaste! I'm Aria. I can redesign your home for you — try “paint the master bedroom sage green”, “convert the study into a gaming room”, “design my bedroom under ₹30,000” or “give me a tour”.`;
   if (/how much|cost|price/i.test(text)) { const c = homeCost(); return `Your current design is estimated at ${inr(c.total)} (illustrative): furniture ${inr(c.furniture)}, flooring ${inr(c.flooring)}, painting ${inr(c.paint)}, lighting ${inr(c.lighting)}, false ceiling ${inr(c.ceiling)}, decor ${inr(c.decor)}.`; }
   if (/(biggest|largest|area|size)/i.test(text)) { const rs = allRooms().slice().sort((a, b) => area(b) - area(a)); return `Total carpet area is ${r2(rs.reduce((s, r) => s + area(r), 0))} m². Largest: ${rs[0].name} (${rs[0].w} × ${rs[0].d} m, ${r2(area(rs[0]))} m²).`; }
-  return `I can change colours, flooring, furniture, themes, room purposes, lighting, ceilings and budgets — or take you on a tour. Try: “make the living room Japandi”, “add a bookshelf to the study”, “Italian marble floor in the living room”, or “show me sunset light”.${aiOn() ? '' : ' Connect Gemini AI in Settings for free-form conversation.'}`;
+  return `I can change colours, flooring, furniture, themes, room purposes, lighting, ceilings and budgets — or take you on a tour. Try: “make the living room Japandi”, “add a bookshelf to the study”, “Italian marble floor in the living room”, or “show me sunset light”.${aiOn() ? '' : ' Connect Cloudflare AI in Settings for free-form conversation.'}`;
 }
 
 /* ---------- tour narration ---------- */
@@ -3243,7 +3243,7 @@ function mainDoorSide(f) { // which side of the house the main door faces, by ch
 }
 function siteRect(b) {
   const ground = P().floors.slice().sort((x, y) => x.level - y.level)[0]; const md = ground ? mainDoorSide(ground) : null; let side = md && md.side || 'S';
-  const st = P().site; // the plot as drawn on the plan (Gemini reading): boundary wall on the plot line, road and gate where drawn
+  const st = P().site; // the plot as drawn on the plan (AI reading): boundary wall on the plot line, road and gate where drawn
   if (st && st.plot && st.plot.w > 2 && st.plot.d > 2) { const pl = st.plot, sd = st.road || side, gt = st.gate;
     return { x0: pl.x, x1: pl.x + pl.w, z0: pl.y, z1: pl.y + pl.d, side: sd, door: md && md.side === sd ? md.d : null, gate: gt ? (sd === 'N' || sd === 'S' ? gt.x : gt.y) : null, gateW: gt ? gt.w : null, yards: true }; }
   const yards = ground ? ground.rooms.filter(isYard) : [];
@@ -5265,7 +5265,7 @@ async function startTour(fromIndex = 0) {
   document.getElementById('app').classList.add('touring'); CTL.enabled = false;
   renderTourUI(); rebuild();
   if (aiOn()) { setTourStatus(`${modelLabel()} is writing your personalised narration…`); serverNarrations(TOUR.order).then(j => { if (tok !== TOUR.token) return; if (j.intro) TOUR.intro = j.intro; if (j.outro) TOUR.outro = j.outro; Object.entries(j.rooms || {}).forEach(([k, v]) => { if (TOUR.narr[k] && v) TOUR.narr[k] = v; }); setTourStatus('Narration by ' + (j.via ? 'Qwen' : modelLabel())); }).catch(e => setTourStatus('Narration: on-device (' + modelLabel() + ' unavailable)')); }
-  else setTourStatus(S.backendOK ? 'Narration: on-device · connect Gemini in ⚙ for AI-written narration' : 'Narration: on-device · start the DIMORA backend for AI narration');
+  else setTourStatus(S.backendOK ? 'Narration: on-device · connect Cloudflare AI in ⚙ for AI-written narration' : 'Narration: on-device · start the DIMORA backend for AI narration');
   const b = homeBounds(FL()), c = [b.x + b.w / 2, floorY(FL()), b.y + b.d / 2], R = Math.max(b.w, b.d);
   if (fromIndex === 0) {
     const ring = [0, 1, 2].map(i => { const a = -0.6 + i * 0.75; return [c[0] + Math.sin(a) * R * 1.15, c[1] + R * 0.75, c[2] + Math.cos(a) * R * 1.15]; });
@@ -5399,9 +5399,9 @@ function save(withThumb) {
 function updateAIBadge() {
   if (PRIVATE_HOST) $('#app').dataset.backend = aiOn() ? 'ai' : S.backendOK ? 'connected' : 'local';
   const a = S.backend && S.backend.ai;
-  const st = !S.backendOK ? ['key', 'Browser mode'] : !a || !a.active ? ['key', 'AI · not connected'] : a.active === 'gemini' ? ['ok', 'Gemini AI'] : a.active === 'ollama' ? ['ok', 'Qwen · local'] : ['ok', 'AI · OpenRouter'];
-  $$('.gbadge').forEach(b => { b.className = 'gbadge ' + st[0]; b.textContent = st[1]; b.title = S.backendOK ? modelLabel() : 'Running the in-browser engine. For the accurate detector and Gemini AI, run the DIMORA backend (run.bat) and open http://127.0.0.1:8000'; });
-  const ce = $('#chat-engine'); if (ce) ce.textContent = aiOn() ? modelLabel() : S.backendOK ? 'Rule-based engine · connect Gemini in ⚙' : 'In-browser engine · backend offline';
+  const st = !S.backendOK ? ['key', 'Browser mode'] : !a || !a.active ? ['key', 'AI · not connected'] : a.active === 'cloudflare' ? ['ok', 'Cloudflare AI'] : a.active === 'ollama' ? ['ok', 'Qwen · local'] : ['ok', 'AI · OpenRouter'];
+  $$('.gbadge').forEach(b => { b.className = 'gbadge ' + st[0]; b.textContent = st[1]; b.title = S.backendOK ? modelLabel() : 'Running the in-browser engine. For the accurate detector and Cloudflare AI, run the DIMORA backend (run.bat) and open http://127.0.0.1:8000'; });
+  const ce = $('#chat-engine'); if (ce) ce.textContent = aiOn() ? modelLabel() : S.backendOK ? 'Rule-based engine · connect Cloudflare AI in ⚙' : 'In-browser engine · backend offline';
 }
 function updateTopStats() {
   const el = $('#top-stats'); if (!el || !S.project) return; const c = homeCost(); const built = allRooms().filter(r => !isYard(r)); const A = built.reduce((s, r) => s + area(r), 0);
@@ -5674,7 +5674,7 @@ function renderDash() {
   const merged = local.slice(); (CLOUD.list || []).forEach(c => { const i = merged.findIndex(p => p.id === c.id); if (i < 0) merged.push(Object.assign({ cloud: true }, c)); else if (c.updated > merged[i].updated) merged[i] = Object.assign({}, merged[i], c, { cloud: true }); });
   const list = merged.sort((a, b) => b.updated - a.updated);
   if (isCloud() && !renderDash.fetching) { renderDash.fetching = true; cloudList().then(l => { renderDash.fetching = false; if (l && $('#app').dataset.screen === 'dash' && JSON.stringify(l.map(x => [x.id, x.updated])) !== renderDash.lastSig) { renderDash.lastSig = JSON.stringify(l.map(x => [x.id, x.updated])); renderDash(); } }); }
-  API.health().then(() => { if (aiOn() || !$('#dash-prefs') || $('#dash-ai')) return; $('#dash-prefs').insertAdjacentHTML('beforeend', `<div id="dash-ai" class="card" style="width:100%;display:flex;gap:14px;align-items:center;margin-top:10px"><span style="font-size:24px">✦</span><div style="flex:1"><b>${S.backendOK ? 'Connect Gemini AI' : 'Start the DIMORA backend'}</b><div class="muted" style="font-size:13px">${S.backendOK ? 'The backend is running but no AI is connected. Add a free Google Gemini API key (from aistudio.google.com/apikey) in ⚙ Settings or as GEMINI_API_KEY in backend/.env so AI can read room labels, power Aria and write your tour narration.' : 'Plan detection, room graphs and the Gemini AI run on the Python backend. Start it with <code>python backend/app.py</code> and open http://127.0.0.1:8000. Until then DIMORA runs a simpler in-browser engine.'}</div></div><button class="btn primary sm" data-act="settings">Settings</button></div>`); });
+  API.health().then(() => { if (aiOn() || !$('#dash-prefs') || $('#dash-ai')) return; $('#dash-prefs').insertAdjacentHTML('beforeend', `<div id="dash-ai" class="card" style="width:100%;display:flex;gap:14px;align-items:center;margin-top:10px"><span style="font-size:24px">✦</span><div style="flex:1"><b>${S.backendOK ? 'Connect Cloudflare AI' : 'Start the DIMORA backend'}</b><div class="muted" style="font-size:13px">${S.backendOK ? 'The backend is running but no AI is connected. Add your Cloudflare account ID and a Workers AI API token in ⚙ Settings, or as CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in backend/.env, so AI can read room labels, power Aria and write your tour narration.' : 'Plan detection, room graphs and the Cloudflare AI run on the Python backend. Start it with <code>python backend/app.py</code> and open http://127.0.0.1:8000. Until then DIMORA runs a simpler in-browser engine.'}</div></div><button class="btn primary sm" data-act="settings">Settings</button></div>`); });
   $('#proj-grid').innerHTML = `<div class="pcard new" data-act="new-upload"><div><div>＋</div><b>New from floor plan</b><small>JPG · PNG · PDF</small></div></div>` + list.map(p => `<div class="pcard" data-act="open-proj" data-id="${p.id}"><div class="th" style="${p.thumb ? `background-image:url(${p.thumb})` : ''}">${p.thumb ? '' : '◇'}</div><div class="pb"><b>${esc(p.name)}</b><small>${p.rooms} rooms · ${esc(p.theme || '')} · ${inr(p.cost || 0)} · ${new Date(p.updated).toLocaleDateString('en-IN')}</small></div><button class="del" data-act="del-proj" data-id="${p.id}">🗑</button></div>`).join('');
   updateAIBadge();
 }
@@ -5696,27 +5696,28 @@ function renderOnboarding() {
 }
 function aiStatusHTML() {
   if (!S.backendOK) return `<div class="tag err">Backend offline</div><p class="muted" style="font-size:13px;margin:6px 0 0">Nothing answered at <code>${esc(API.base())}</code>. Start it with <code>python backend/app.py</code>.</p>`;
-  const a = S.backend.ai, o = a.ollama, r = a.openrouter, g = a.gemini || {};
+  const a = S.backend.ai, o = a.ollama, r = a.openrouter, g = a.cloudflare || {};
   return `<div class="tag ok">Backend v${esc(S.backend.version)} connected</div>
   <ul class="muted" style="font-size:13px;line-height:1.7;padding-left:18px;margin:8px 0 0">
-  <li>Google Gemini: ${g.configured ? `✓ key set · <b>${esc(g.model)}</b>` : 'no key — get a free one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>'}</li>
+  <li>Cloudflare Workers AI: ${g.configured ? `✓ connected · <b>${esc(g.model)}</b>` : g.account_set || g.token_set ? `needs both an account ID and an API token (${g.account_set ? 'token' : 'account ID'} missing)` : 'not connected — create a Workers AI API token at <a href="https://dash.cloudflare.com/?to=/:account/ai/workers-ai" target="_blank" rel="noopener">dash.cloudflare.com → AI → Workers AI</a>'}</li>
   <li>Ollama (local): ${o.running ? (o.model_installed ? `✓ running with <b>${esc(o.model)}</b>` : `running, but <b>${esc(o.model)}</b> isn't installed — run <code>ollama pull ${esc(o.model)}</code>`) : 'not running'}</li>
   <li>OpenRouter (hosted): ${r.configured ? `✓ key set · <b>${esc(r.model)}</b>` : 'no key'}</li>
   <li>Active AI: <b>${a.active ? esc(modelLabel()) : 'none — Aria uses the rule-based engine'}</b></li></ul>`;
 }
 function openSettings() {
   $('#modal-card').innerHTML = `<button class="x" data-act="modal-close">✕</button><p class="eyebrow">Settings</p><h2>Backend &amp; AI</h2>
-  <p class="muted">DIMORA's engine runs on a Python server: plan detection (OpenCV), room graphs (NetworkX) and the AI. The AI is <b>Google Gemini</b>: it reads your plan's labels, powers Aria's chat and writes tour narration. Local <b>Ollama</b> (Qwen) and <b>OpenRouter</b> still work as fallbacks.</p>
+  <p class="muted">DIMORA's engine runs on a Python server: plan detection (OpenCV), room graphs (NetworkX) and the AI. The AI is <b>Cloudflare Workers AI</b>: it reads your plan's labels, powers Aria's chat and writes tour narration. Local <b>Ollama</b> (Qwen) and <b>OpenRouter</b> still work as fallbacks.</p>
   <div id="set-status" class="card" style="margin:10px 0">${aiStatusHTML()}</div>
   <label class="field">Backend URL<input id="set-url" value="${esc(S.backendUrl)}" placeholder="${esc(API.base())} (automatic)"></label>
-  <label class="field">AI provider<select id="set-prov">${[['auto', 'Automatic: Gemini first, then local Ollama, then OpenRouter'], ['gemini', 'Google Gemini only'], ['ollama', 'Local only (Ollama)'], ['openrouter', 'OpenRouter only']].map(([k, v]) => `<option value="${k}" ${S.aiProvider === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-  <label class="field">Gemini model<select id="set-gem-model">${Object.entries(Object.assign({}, GEM_MODELS, GEM_MODELS[S.gemModel] ? {} : { [S.gemModel]: 'Custom' })).map(([k, v]) => `<option value="${k}" ${S.gemModel === k ? 'selected' : ''}>${v} — ${k}</option>`).join('')}</select></label>
-  <label class="field">Gemini API key <small class="muted">(optional — or set GEMINI_API_KEY in backend/.env)</small><input type="password" id="set-gem-key" value="${esc(S.gemKey)}" placeholder="AIza…" autocomplete="off"></label>
+  <label class="field">AI provider<select id="set-prov">${[['auto', 'Automatic: Cloudflare first, then local Ollama, then OpenRouter'], ['cloudflare', 'Cloudflare Workers AI only'], ['ollama', 'Local only (Ollama)'], ['openrouter', 'OpenRouter only']].map(([k, v]) => `<option value="${k}" ${S.aiProvider === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+  <label class="field">Cloudflare model<select id="set-cf-model">${Object.entries(Object.assign({ '': `Server default${((S.backend && S.backend.ai && S.backend.ai.cloudflare) || {}).model ? ' (' + S.backend.ai.cloudflare.model + ')' : ''}` }, CF_MODELS, S.cfModel && !CF_MODELS[S.cfModel] ? { [S.cfModel]: 'Custom' } : {})).map(([k, v]) => `<option value="${esc(k)}" ${S.cfModel === k ? 'selected' : ''}>${esc(v)}${k ? ' — ' + esc(k) : ''}</option>`).join('')}</select></label>
+  <label class="field">Cloudflare account ID <small class="muted">(optional — or set CLOUDFLARE_ACCOUNT_ID in backend/.env)</small><input id="set-cf-account" value="${esc(S.cfAccount)}" placeholder="32-character account ID" autocomplete="off" spellcheck="false"></label>
+  <label class="field">Cloudflare API token <small class="muted">(optional — or set CLOUDFLARE_API_TOKEN in backend/.env)</small><input type="password" id="set-cf-token" value="${esc(S.cfToken)}" placeholder="Workers AI token" autocomplete="off"></label>
   <label class="field">Ollama model<input id="set-ollama" value="${esc(S.ollamaModel)}" placeholder="qwen3.5:9b"></label>
   <label class="field">OpenRouter model<select id="set-or-model">${Object.entries(OR_MODELS).map(([k, v]) => `<option value="${k}" ${S.orModel === k ? 'selected' : ''}>${v} — ${k}</option>`).join('')}</select></label>
   <label class="field">OpenRouter API key <small class="muted">(optional — or set OPENROUTER_API_KEY in backend/.env)</small><input type="password" id="set-or-key" value="${esc(S.orKey)}" placeholder="sk-or-…" autocomplete="off"></label>
   <div class="row"><button class="btn primary" data-act="set-save">Save</button><button class="btn ghost" data-act="set-test">Test AI</button><span id="set-msg" class="muted"></span></div>
-  <p class="muted" style="font-size:12px;margin-top:16px">Settings are stored only in this browser. API keys are sent only to your own DIMORA backend, which forwards them to Google (Gemini) or openrouter.ai. Better: keep it in <code>backend/.env</code> so it never touches the browser.</p>
+  <p class="muted" style="font-size:12px;margin-top:16px">Settings are stored only in this browser. API keys are sent only to your own DIMORA backend, which forwards them to Cloudflare or openrouter.ai. Better: keep it in <code>backend/.env</code> so it never touches the browser.</p>
   <h3 style="margin-top:20px">Graphics</h3>
   <label class="field">3D quality <small class="muted">(applies instantly)</small><select data-act-change="gfx">${[['ultra', 'Ultra: sharpest, full resolution'], ['high', 'High: realistic (recommended)'], ['balanced', 'Balanced: for laptops and phones'], ['low', 'Low: fastest']].map(([k, v]) => `<option value="${k}" ${(E ? E.quality : Engine.defaultQuality()) === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
   <h3 style="margin-top:20px">Data</h3><button class="btn sm ghost" data-act="clear-data">Clear all saved projects &amp; settings</button>`;
@@ -5724,13 +5725,13 @@ function openSettings() {
   API.health(true).then(() => { const el = $('#set-status'); if (el) el.innerHTML = aiStatusHTML(); });
 }
 function readSettingsForm() {
-  S.backendUrl = $('#set-url').value.trim(); S.aiProvider = $('#set-prov').value; S.ollamaModel = $('#set-ollama').value.trim() || 'qwen3.5:9b'; S.orModel = $('#set-or-model').value; S.orKey = $('#set-or-key').value.trim(); S.gemModel = $('#set-gem-model').value; S.gemKey = $('#set-gem-key').value.trim();
-  store.set('ai', { backendUrl: S.backendUrl, aiProvider: S.aiProvider, ollamaModel: S.ollamaModel, orModel: S.orModel, orKey: S.orKey, gemModel: S.gemModel, gemKey: S.gemKey });
+  S.backendUrl = $('#set-url').value.trim(); S.aiProvider = $('#set-prov').value; S.ollamaModel = $('#set-ollama').value.trim() || 'qwen3.5:9b'; S.orModel = $('#set-or-model').value; S.orKey = $('#set-or-key').value.trim(); S.cfModel = $('#set-cf-model').value; S.cfAccount = $('#set-cf-account').value.trim(); S.cfToken = $('#set-cf-token').value.trim();
+  store.set('ai', { backendUrl: S.backendUrl, aiProvider: S.aiProvider, ollamaModel: S.ollamaModel, orModel: S.orModel, orKey: S.orKey, cfModel: S.cfModel, cfAccount: S.cfAccount, cfToken: S.cfToken });
 }
 /* ---------- upload & detection flow ---------- */
 let detectRes = null;
 function resetUpload() { $('#up-drop').hidden = false; $('#up-result').hidden = true; $('#det-tools').hidden = true; DET.sel = null; $('#file-in').value = ''; $('#st-detect').className = ''; const n = $('#ai-note');
-  const paint = () => { $('#use-ai').checked = aiOn(); $('#use-ai').disabled = !aiOn(); if (n) n.innerHTML = aiOn() ? `Using <b>${esc(modelLabel())}</b> on the backend` : S.backendOK ? `No AI connected — <a data-act="settings" style="color:var(--acc);cursor:pointer">connect Gemini</a> so it can read labels, dimensions, stairs &amp; floor names. The backend's computer vision still finds walls, rooms and floors.` : `Backend offline — DIMORA will use its simpler in-browser engine. Start it with <code>python backend/app.py</code>.`; };
+  const paint = () => { $('#use-ai').checked = aiOn(); $('#use-ai').disabled = !aiOn(); if (n) n.innerHTML = aiOn() ? `Using <b>${esc(modelLabel())}</b> on the backend` : S.backendOK ? `No AI connected — <a data-act="settings" style="color:var(--acc);cursor:pointer">connect Cloudflare AI</a> so it can read labels, dimensions, stairs &amp; floor names. The backend's computer vision still finds walls, rooms and floors.` : `Backend offline — DIMORA will use its simpler in-browser engine. Start it with <code>python backend/app.py</code>.`; };
   paint(); API.health().then(paint); }
 /* input: a data URL, or a list of sheets [{url, name}] (one per file / PDF page). Every sheet may hold one or several floor plans. */
 /* Server path: the Python backend detects, scales, orders, aligns and connects every floor. */
@@ -5772,7 +5773,7 @@ async function runServerDetection(input, opts = {}) {
     applyServerFloors(res.floors);
     P().wallThickness = res.wall_thickness; P().scaleNote = res.scale_note;
     if (res.north != null) P().north = res.north; P().site = res.site || null; if (res.built_up_sqft) P().builtUpSqft = res.built_up_sqft;
-    if (/structured/i.test(res.source || '')) { P().facade = P().facade || 'classic'; } // an Indian plan read by Gemini: plastered walls, parapet roof P().planImage = res.floors[0].overlay.image || (typeof input === 'string' ? input : null);
+    if (/structured/i.test(res.source || '')) { P().facade = P().facade || 'classic'; } // an Indian plan read by the AI: plastered walls, parapet roof P().planImage = res.floors[0].overlay.image || (typeof input === 'string' ? input : null);
     detectRes = { server: true, cur: 0, floors: res.floors.map(fl => ({ url: fl.overlay.image || $('#up-img').src, rd: { cv: { W: fl.overlay.W, H: fl.overlay.H }, mpp: fl.overlay.mpp, bx0: fl.overlay.bx0, by0: fl.overlay.by0, off: fl.overlay.off, source: res.source + ' (backend)' } })) };
     renderDetection(); $('#btn-gen').disabled = false;
   } catch (e) {
@@ -6259,7 +6260,7 @@ ACT['install-app'] = async () => {
   toast('Use your browser menu → “Install app” (or “Add to Home screen”).', 5000);
 };
 function boot() {
-  S.prefs = Object.assign(S.prefs, store.get('prefs', {})); { const a = store.get('ai', {}); ['backendUrl', 'aiProvider', 'ollamaModel', 'orModel', 'orKey', 'gemModel', 'gemKey'].forEach(k => { if (a[k] != null && a[k] !== '') S[k] = a[k]; }); } API.health(true);
+  S.prefs = Object.assign(S.prefs, store.get('prefs', {})); { const a = store.get('ai', {}); ['backendUrl', 'aiProvider', 'ollamaModel', 'orModel', 'orKey', 'cfModel', 'cfAccount', 'cfToken'].forEach(k => { if (a[k] != null && a[k] !== '') S[k] = a[k]; }); if (S.aiProvider === 'gemini') S.aiProvider = 'cloudflare'; if (!OR_MODELS[S.orModel]) S.orModel = 'qwen/qwen3.5-27b'; } API.health(true);
   document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (!el) return; if (el.tagName === 'A' && !el.getAttribute('href')?.startsWith('http')) e.preventDefault(); const f = ACT[el.dataset.act]; if (f) { f(el, e); } });
   document.addEventListener('change', e => { const el = e.target.closest('[data-act-change]'); if (el && CHANGE[el.dataset.actChange]) CHANGE[el.dataset.actChange](el, e); });
   document.addEventListener('input', e => { const el = e.target.closest('[data-act-input]'); if (el && INPUT[el.dataset.actInput]) INPUT[el.dataset.actInput](el, e); });
@@ -6557,29 +6558,29 @@ document.addEventListener('click', e => {
   const h = e.target.closest('[data-hero]'); if (h && HERO.E && !HERO.busy) { HERO.mode = h.dataset.hero; $$('[data-hero]').forEach(b => { const on = b === h; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); heroBuild(); }
   const s = e.target.closest('[data-sc]'); if (s) scShow(s.dataset.sc);
 });
-/* ---------- "Make it Real": Gemini turns the current 3D view into a photo ---------- */
+/* ---------- "Make it Real": a Cloudflare Workers AI image model turns the current 3D view into a photo ---------- */
 async function makeReal() {
   if (!E || S.view === '2d') { toast('Switch to the 3D view first — the photo is made from what you see.'); return; }
   const ins = (() => { const r = roomAt(E.cam.pos[0], E.cam.pos[2]); return !!r && !isOpenAir(r) && E.cam.pos[1] < floorY(FL()) + FL().height; })();
   const shotURL = E.snapshot(1280, 720), stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
-  $('#modal-card').innerHTML = `<button class="x" data-act="modal-close" aria-label="Close">✕</button><p class="eyebrow">Powered by Google Gemini</p><h2>✨ Make it Real</h2>
+  $('#modal-card').innerHTML = `<button class="x" data-act="modal-close" aria-label="Close">✕</button><p class="eyebrow">Powered by Cloudflare Workers AI</p><h2>✨ Make it Real</h2>
     <div class="mr-wrap"><div class="mr-stage mr-loading" id="mr-stage"><img src="${shotURL}" alt="Your 3D view"></div>
-    <div class="mr-status" id="mr-status"><span class="mr-spin"></span><span>Gemini is turning this view into a photo — this takes about 10–30 seconds…</span></div></div>`;
+    <div class="mr-status" id="mr-status"><span class="mr-spin"></span><span>Cloudflare AI is turning this view into a photo — this takes about 10–30 seconds…</span></div></div>`;
   $('#modal').classList.add('on'); $('#modal-card').classList.add('wide');
   try {
     const res = await API.req('/api/ai/make-real', { body: { image: shotURL, view: ins ? 'interior' : 'exterior' }, timeout: 150000 });
     if (!$('#mr-stage')) return; // closed meanwhile
     S.lastPhoto = res.image;
     $('#mr-stage').classList.remove('mr-loading'); $('#mr-stage').style.setProperty('--cut', '50%');
-    $('#mr-stage').innerHTML = `<img src="${shotURL}" alt="3D view"><img class="mr-after" src="${res.image}" alt="Photorealistic photo by Gemini"><div class="mr-line"></div><span class="mr-tag l">3D view</span><span class="mr-tag r">Photo</span>
+    $('#mr-stage').innerHTML = `<img src="${shotURL}" alt="3D view"><img class="mr-after" src="${res.image}" alt="Photorealistic photo by Cloudflare AI"><div class="mr-line"></div><span class="mr-tag l">3D view</span><span class="mr-tag r">Photo</span>
       <input type="range" min="0" max="100" value="50" aria-label="Compare 3D view and photo" oninput="this.parentNode.style.setProperty('--cut', this.value + '%')">`;
     $('#mr-status').outerHTML = `<div class="mr-actions"><a class="btn primary" href="${res.image}" download="DIMORA-photo-${stamp}.png">⬇ Download photo</a>
       <button class="btn ghost" data-act="make-real">Try again</button><span class="muted">${res.left != null ? `${res.left} of ${res.limit} free photos left today · ` : ''}AI-generated image — layout follows your 3D view, details are artistic.</span></div>`;
   } catch (e) {
     if (!$('#mr-stage')) return; $('#mr-stage').classList.remove('mr-loading');
     const msg = e.status === 429 ? e.message : e.code === 'offline' ? 'The DIMORA server is not reachable, so the photo could not be made. Check your internet connection and try again.'
-      : /key|configured|No Gemini|ai_unavailable/i.test(e.message + e.code) ? 'The photo feature needs a Google Gemini API key on the server (GEMINI_API_KEY), or your own key in Settings → AI.'
-      : `Gemini could not make the photo this time (${esc(e.message).slice(0, 160)}). Please try again in a minute.`;
+      : /token|account ID|configured|No Cloudflare|ai_unavailable/i.test(e.message + e.code) ? 'The photo feature needs Cloudflare Workers AI on the server (CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN), or your own account ID and token in Settings → AI.'
+      : `Cloudflare AI could not make the photo this time (${esc(e.message).slice(0, 160)}). Please try again in a minute.`;
     $('#mr-status').outerHTML = `<div class="mr-err" role="alert">${msg}</div><div class="mr-actions"><button class="btn ghost" data-act="make-real">Try again</button></div>`;
   }
 }
@@ -6722,7 +6723,7 @@ async function exportPDF() {
   if (sv.door) para('Main door: ' + sv.door.note, 9.5);
   sv.rooms.forEach(x => para(`• ${x.r.name}: ${x.zone} zone · ${x.morning}${x.v ? ' · Vastu: ' + { good: 'ideal', ok: 'acceptable', consider: 'consider' }[x.v] : ''}`, 9.5));
   y += 2; para('These are traditional rules of thumb and simple sun paths from the north arrow — not professional, structural or religious advice.', 8.5, false, [0.45, 0.45, 0.5]);
-  para('Made with DIMORA · Powered by Google Gemini', 8.5, false, [0.45, 0.45, 0.5]);
+  para('Made with DIMORA · Powered by Cloudflare Workers AI', 8.5, false, [0.45, 0.45, 0.5]);
   download(doc.blob(), `${fileSafe(P().name)}-summary.pdf`);
 }
 /* ---- view-only share link ---- */
@@ -6754,7 +6755,7 @@ function ideaFallback(budget, family, style) { // works without the AI: three cl
   ];
 }
 function openIdeas() {
-  $('#modal-card').innerHTML = `<button class="x" data-act="modal-close" aria-label="Close">✕</button><p class="eyebrow">Powered by Google Gemini</p><h2>💡 Give me 3 layout ideas</h2>
+  $('#modal-card').innerHTML = `<button class="x" data-act="modal-close" aria-label="Close">✕</button><p class="eyebrow">Powered by Cloudflare Workers AI</p><h2>💡 Give me 3 layout ideas</h2>
   <div class="idea-form"><label class="field">Budget<select id="idea-budget"><option>Under ₹5 lakh</option><option selected>₹5–10 lakh</option><option>₹10–20 lakh</option><option>₹20 lakh +</option></select></label>
   <label class="field">Family<select id="idea-family"><option>Couple</option><option selected>Couple + 1–2 kids</option><option>Joint family (5–6)</option><option>Working professionals</option><option>Senior parents at home</option></select></label>
   <label class="field">Style<select id="idea-style">${Object.keys(THEMES).map(t => `<option ${t === P().theme ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
@@ -6764,7 +6765,7 @@ function openIdeas() {
 async function ideasGo() {
   const budget = $('#idea-budget').value, family = $('#idea-family').value, style = $('#idea-style').value, out = $('#idea-out');
   out.innerHTML = '<div class="mr-status"><span class="mr-spin"></span><span>Thinking of three different ideas for your home…</span></div>';
-  let ideas, via = 'Gemini';
+  let ideas, via = 'Cloudflare AI';
   try { ideas = (await API.req('/api/ai/ideas', { body: { budget, family, style, styles: Object.keys(THEMES), rooms: allRooms().map(r => ({ name: r.name, type: r.type, w: r.w, d: r.d })) }, timeout: 60000 })).ideas; }
   catch (e) { ideas = ideaFallback(budget, family, style); via = 'DIMORA (offline)'; }
   S.ideas = ideas;
@@ -6886,7 +6887,7 @@ function scUI(sec, u, i) {
     $('#sc-room-name').textContent = r.name; $('#sc-room-meta').textContent = `${ftTxt(r.w)} × ${ftTxt(r.d)} · ${Math.round(ft * fd).toLocaleString('en-IN')} sq ft${SC.proj.floors.length > 1 ? ' · ' + sec.f.name : ''}`;
     $('#sc-room-note').textContent = L.dirs.length ? `Daylight from the ${L.dirs.join(' & ')} window${L.dirs.length > 1 ? 's' : ''} · ${ROOM_TYPES[r.type].label}` : ROOM_TYPES[r.type].label;
   }
-  // photoreal layer (Gemini photos made for this showcase): the exterior over the opening shot, each room once the camera has arrived
+  // photoreal layer (AI photos made for this showcase): the exterior over the opening shot, each room once the camera has arrived
   const key = sec.ui === 'room' ? sec.r.id : sec.ui === 'hero' ? 'exterior' : null, ph = key && SC.photos[key], pl = $('#sc-photo');
   if (pl.dataset.key !== (ph ? key : '')) { pl.dataset.key = ph ? key : ''; pl.style.backgroundImage = ph ? `url(${ph})` : 'none'; }
   const pin = sec.swoop ? 0.4 : 0.05, pa = !ph ? 0 : sec.ui === 'hero' ? 1 - clamp((u - 0.55) / 0.3, 0, 1) : clamp((u - pin) / 0.12, 0, 1) * (u > 0.95 ? 1 - (u - 0.95) / 0.05 : 1);
@@ -6911,18 +6912,18 @@ function scHTML() {
   return `<div class="sc-stage"><canvas id="sc-gl"></canvas><div id="sc-photo" class="sc-photo"></div><div id="sc-veil" class="sc-veil"></div></div>
   <header class="sc-top"><div class="sc-brand"><span class="sc-mark">◇</span><b>${esc(pj.name)}</b><i>Presented with DIMORA</i></div>
     <nav>${rail.map(([n, i, g]) => `<button data-act="sc-go" data-i="${i}">${n}</button>`).join('')}</nav>
-    <div class="sc-top-r">${SC.viewer ? '' : `<button class="sc-ghost sc-mk" data-act="sc-photos-all" title="Gemini makes a photoreal picture of the outside and of every room">✨ ${Object.keys(SC.photos).length ? 'Remake photos' : 'Make it photoreal'}</button>`}<button class="sc-gold" data-act="sc-visit">Book a visit</button><button class="sc-x" data-act="sc-close" aria-label="Close showcase">✕</button></div></header>
+    <div class="sc-top-r">${SC.viewer ? '' : `<button class="sc-ghost sc-mk" data-act="sc-photos-all" title="Cloudflare AI makes a photoreal picture of the outside and of every room">✨ ${Object.keys(SC.photos).length ? 'Remake photos' : 'Make it photoreal'}</button>`}<button class="sc-gold" data-act="sc-visit">Book a visit</button><button class="sc-x" data-act="sc-close" aria-label="Close showcase">✕</button></div></header>
   <div id="sc-progress" class="sc-progress"></div>
   <div id="sc-rail" class="sc-rail">${rail.map(([n, i, g]) => `<button data-act="sc-go" data-i="${i}" ${g ? `data-grp="${g}"` : ''} aria-label="${n}"><i></i><span>${n}</span></button>`).join('')}</div>
   <section class="sc-ui sc-hero" data-sc="hero"><p class="sc-eyebrow">${esc(floorsTxt)} · ${esc(bhk)} residence</p><h1>${esc(pj.name)}</h1>
     <p class="sc-sub">${sch.built.toLocaleString('en-IN')} sq ft built-up · ${hero.beds} bedroom${hero.beds === 1 ? '' : 's'} · ${hero.baths} bath${hero.baths === 1 ? '' : 's'}${plot ? ` · plot ${Math.round(toFt(plot.w))} × ${Math.round(toFt(plot.d))} ft` : ''}</p>
     <p class="sc-scroll">Scroll to step inside <span>↓</span></p>
-    ${SC.viewer ? '' : `<button id="sc-real" class="sc-real" data-act="sc-photos-all"><b>✨ Make it photoreal</b><span>Gemini turns the outside and every room into a real-looking photo, like an architect's render — about ${SC.secs.filter(x => x.ui === 'room').length + 1} photos, a minute or two.</span></button>`}</section>
+    ${SC.viewer ? '' : `<button id="sc-real" class="sc-real" data-act="sc-photos-all"><b>✨ Make it photoreal</b><span>Cloudflare AI turns the outside and every room into a real-looking photo, like an architect's render — about ${SC.secs.filter(x => x.ui === 'room').length + 1} photos, a minute or two.</span></button>`}</section>
   <div id="sc-status" class="sc-status" role="status" aria-live="polite"></div>
   <div id="sc-hot" class="sc-hot" data-sc="hero"><i></i><div class="sc-card"><small>${multi ? 'Floors' : 'Residence'}</small><b>${esc(bhk)} · ${sch.built.toLocaleString('en-IN')} sq ft</b><span>${hero.beds} bed · ${hero.baths} bath · ${esc(floorsTxt)}</span><button data-act="sc-go" data-i="${SC.secs.indexOf(doll)}">View the floor plan →</button></div></div>
   <section class="sc-ui sc-side" data-sc="site"><p class="sc-eyebrow">The plot</p><h2>${plot ? `${Math.round(toFt(plot.w))} × ${Math.round(toFt(plot.d))} ft` : 'Room to breathe'}</h2>
     <ul class="sc-list">${outs.slice(0, 6).map(r => `<li><span>${esc(r.name)}</span><b>${ftTxt(r.w)} × ${ftTxt(r.d)}</b></li>`).join('')}</ul></section>
-  <section class="sc-ui sc-side" data-sc="reveal"><p class="sc-eyebrow">Inside</p><h2>Every room, true to the plan.</h2><p class="sc-p">Read from the drawing by Google Gemini and built to scale — walls, doors, windows and furniture.</p></section>
+  <section class="sc-ui sc-side" data-sc="reveal"><p class="sc-eyebrow">Inside</p><h2>Every room, true to the plan.</h2><p class="sc-p">Read from the drawing by AI and built to scale — walls, doors, windows and furniture.</p></section>
   <section class="sc-ui sc-panel" data-sc="doll"><p class="sc-eyebrow">${multi ? 'Floors' : 'Floor plan'}</p><h2>${esc(bhk)} · ${sch.built.toLocaleString('en-IN')} sq ft</h2>
     ${multi ? `<ul class="sc-list">${fl}</ul>` : ''}<ul class="sc-list sc-rooms">${roomsList}</ul><p class="sc-fine">Sizes in feet. Built-up area excludes balcony, porch, parking and garden.</p></section>
   <section class="sc-ui sc-caption" data-sc="room"><p class="sc-eyebrow" id="sc-room-note"></p><h2 id="sc-room-name"></h2><p class="sc-sub" id="sc-room-meta"></p>
@@ -6930,7 +6931,7 @@ function scHTML() {
   <section class="sc-ui sc-gallery" data-sc="gallery"><div class="sc-gal-head"><p class="sc-eyebrow">The residence</p><h2>Every room, as it will feel.</h2></div><div id="sc-strip" class="sc-strip"></div></section>
   <section class="sc-ui sc-finale" data-sc="finale"><p class="sc-eyebrow">${esc(pj.name)}</p><h2>Like what you see?</h2>
     <div class="sc-cta"><button class="sc-gold" data-act="sc-visit">Book a visit</button><button class="sc-ghost" data-act="sc-share">Share this showcase</button>${SC.viewer ? '<a class="sc-ghost" href="./">Make your own with DIMORA</a>' : '<button class="sc-ghost" data-act="sc-close">Back to editing</button>'}</div>
-    <p class="sc-fine" id="sc-share-out">3D home made from a 2D floor plan with DIMORA · Powered by Google Gemini</p></section>
+    <p class="sc-fine" id="sc-share-out">3D home made from a 2D floor plan with DIMORA · Powered by Cloudflare Workers AI</p></section>
   <div class="sc-scroll-space" style="height:${(SC.total * 100).toFixed(1)}vh"></div>`;
 }
 async function openShowcase(opts = {}) {
@@ -6968,23 +6969,23 @@ async function scShare() {
     if (out) out.innerHTML = `Link copied: <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`; }
   catch (e) { if (out) out.textContent = 'Could not create the link: ' + e.message; }
 }
-async function scPhoto() { // Gemini photo of the current room shot, shown over the 3D and kept for this showcase
+async function scPhoto() { // AI photo of the current room shot, shown over the 3D and kept for this showcase
   const sec = SC.secs.find(x => x.ui === 'room' && SC.t >= x.p0 && SC.t <= x.p1); if (!sec) return; const btn = $('#sc-root [data-act="sc-photo"]');
-  if (btn) { btn.disabled = true; btn.textContent = '✨ Gemini is making the photo…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '✨ Making the photo…'; }
   try { const shot = SC.E.snapshot(1280, 720); const res = await API.req('/api/ai/make-real', { body: { image: shot, view: 'interior', room: sec.r.name, style: (THEMES[SC.proj.theme] ? SC.proj.theme : 'modern') + ' interior', look: 'showcase' }, timeout: 150000 });
     SC.photos[sec.r.id] = await scDataUrl(res.image, 1600); if (!SC.viewer && S.project === SC.proj) { P().showcasePhotos = Object.assign({}, P().showcasePhotos || {}, { [sec.r.id]: SC.photos[sec.r.id] }); save(); }
     SC.roomShown = null; scFrame(); toast(res.left != null ? `Photo ready · ${res.left} left today` : 'Photo ready'); }
   catch (e) { toast(e.status === 429 ? e.message : 'Could not make the photo: ' + e.message, 5000); }
   finally { if (btn) { btn.disabled = false; btn.textContent = '✨ Make it Real'; } }
 }
-/* "Make it photoreal": one Gemini photo per shot — the opening exterior and every room — kept with the project */
+/* "Make it photoreal": one AI photo per shot — the opening exterior and every room — kept with the project */
 async function scDataUrl(url, maxW = 1600) { const j = await toJpeg(url, maxW); let bin = ''; for (let i = 0; i < j.bytes.length; i += 32768) bin += String.fromCharCode(...j.bytes.subarray(i, i + 32768)); return 'data:image/jpeg;base64,' + btoa(bin); }
 function scGalleryCards() { // big photo cards: the outside, then every room, each with its name and size
   const strip = $('#sc-strip'); if (!strip) return; const rooms = SC.secs.filter(x => x.ui === 'room');
   const items = [{ key: 'exterior', name: 'The house', meta: 'At dusk' }].concat(rooms.map(x => ({ key: x.r.id, name: x.r.name, meta: `${ftTxt(x.r.w)} × ${ftTxt(x.r.d)}` })));
   const have = items.filter(it => SC.photos[it.key]);
   strip.innerHTML = have.length ? have.map(it => `<figure class="sc-shot"><div style="background-image:url(${SC.photos[it.key]})"></div><figcaption><b>${esc(it.name)}</b><span>${esc(it.meta)}</span></figcaption></figure>`).join('')
-    : `<button class="sc-real sc-gal-empty" data-act="sc-photos-all"><b>✨ Make it photoreal</b><span>Gemini makes a real-looking photo of the outside and of every room. They appear here, like a property brochure.</span></button>`;
+    : `<button class="sc-real sc-gal-empty" data-act="sc-photos-all"><b>✨ Make it photoreal</b><span>Cloudflare AI makes a real-looking photo of the outside and of every room. They appear here, like a property brochure.</span></button>`;
   SC.galKey = Object.keys(SC.photos).sort().join();
 }
 function scGallery(u) {
@@ -6998,7 +6999,7 @@ async function scMakeAll() {
     .concat(SC.secs.filter(x => x.ui === 'room').map(x => ({ key: x.r.id, light: 'day', cam: scCamAt(x, 0.5), view: 'interior', room: x.r.name, label: x.r.name })));
   const keepT = SC.t; let made = 0;
   try {
-    for (let i = 0; i < shots.length; i++) { const sh = shots[i]; say(`<span class="mr-spin"></span> Gemini is making photo ${i + 1} of ${shots.length}: <b>${esc(sh.label)}</b>…`);
+    for (let i = 0; i < shots.length; i++) { const sh = shots[i]; say(`<span class="mr-spin"></span> Making photo ${i + 1} of ${shots.length}: <b>${esc(sh.label)}</b>…`);
       scBuild(sh.light); scLift(sh.view === 'exterior' ? 0 : 1, sh.view === 'exterior' ? 0 : 1, Math.min(...SC.proj.floors.map(f => f.level)));
       SC.E.cam.pos = sh.cam.pos; SC.E.cam.target = sh.cam.target; SC.E.cam.fov = sh.cam.fov * Math.PI / 180;
       const shot = SC.E.snapshot(1280, 720); SC.E.dirty = true;
@@ -7008,8 +7009,8 @@ async function scMakeAll() {
     }
     say(`✅ ${made} photos ready — scroll through the showcase.`); setTimeout(() => st && st.classList.remove('on'), 5000);
   } catch (e) {
-    say(e.status === 429 ? `${esc(e.message)}${made ? ` (${made} photos were made and kept.)` : ''}` : /key|No Gemini|ai_unavailable|offline/i.test(e.message + e.code)
-      ? 'Photos need Google Gemini: set GEMINI_API_KEY on the server (or add your key in Settings → AI).' : `Gemini could not make a photo (${esc(e.message).slice(0, 140)}). ${made ? made + ' photos were kept. ' : ''}Try again in a minute.`, true);
+    say(e.status === 429 ? `${esc(e.message)}${made ? ` (${made} photos were made and kept.)` : ''}` : /token|account ID|No Cloudflare|ai_unavailable|offline/i.test(e.message + e.code)
+      ? 'Photos need Cloudflare Workers AI: set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN on the server (or add your own in Settings → AI).' : `Cloudflare AI could not make a photo (${esc(e.message).slice(0, 140)}). ${made ? made + ' photos were kept. ' : ''}Try again in a minute.`, true);
   } finally { SC.busy = false; if (made && S.project === SC.proj) save(); SC.built = null; SC.roomShown = null; SC.t = keepT; SC.E.dirty = true; scFrame();
     const mk = $('#sc-root .sc-mk'); if (mk && Object.keys(SC.photos).length) mk.textContent = '✨ Remake photos'; }
 }
@@ -7038,7 +7039,7 @@ Object.assign(ACT, {
   'go-landing': () => { show(PRIVATE_HOST ? 'private-home' : 'landing'); if (!PRIVATE_HOST) setTimeout(initHero, 50); },
   'explore-duplex': () => { S.exploreOnOpen = true; goApp('example:duplex'); },
   contact: (el, e) => { e && e.preventDefault(); siteModal(`<p class="eyebrow">Talk to us</p><h2>Enterprise &amp; partnerships</h2><p class="muted">Builders, architects and agencies: we'd love to set up branded showcases, team workspaces and private deployments for you.</p><p>Write to <a href="mailto:${SITE_CONFIG.contactEmail}" style="color:#22d3ee">${SITE_CONFIG.contactEmail}</a> with your team size and use case.</p><div class="row end"><button class="btn primary" data-act="modal-close">Got it</button></div>`); },
-  legal: (el, e) => { e && e.preventDefault(); siteModal(el.dataset.k === 'terms' ? `<p class="eyebrow">Terms</p><h2>Terms of use</h2><p class="muted">DIMORA is a design-visualisation tool. Cost figures are illustrative estimates for Indian metro markets, not quotations. Structural and bye-law observations are indicative only. Consult a licensed architect or structural engineer before construction. AI output can be wrong; review it before acting on it.</p>` : `<p class="eyebrow">Privacy</p><h2>Your data stays with you</h2><p class="muted">Projects, preferences, your profile and your intro answers are stored in this browser's local storage. Floor plans and prompts are processed by your own DIMORA backend; they are sent to Google's Gemini API when the AI is connected (or to OpenRouter / a local Ollama model if you choose those instead). With Firebase sign-in enabled, Google and Firebase process your Google account email to verify it. DIMORA has no ads and no tracking.</p>`); },
+  legal: (el, e) => { e && e.preventDefault(); siteModal(el.dataset.k === 'terms' ? `<p class="eyebrow">Terms</p><h2>Terms of use</h2><p class="muted">DIMORA is a design-visualisation tool. Cost figures are illustrative estimates for Indian metro markets, not quotations. Structural and bye-law observations are indicative only. Consult a licensed architect or structural engineer before construction. AI output can be wrong; review it before acting on it.</p>` : `<p class="eyebrow">Privacy</p><h2>Your data stays with you</h2><p class="muted">Projects, preferences, your profile and your intro answers are stored in this browser's local storage. Floor plans and prompts are processed by your own DIMORA backend; they are sent to Cloudflare Workers AI when the AI is connected (or to OpenRouter / a local Ollama model if you choose those instead). With Firebase sign-in enabled, Google and Firebase process your Google account email to verify it. DIMORA has no ads and no tracking.</p>`); },
 });
 
 /* ===================== START ===================== */

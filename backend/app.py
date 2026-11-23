@@ -20,7 +20,7 @@ from dimora_core.planner.analysis import analyze, tour_order
 from dimora_core.vision.loader import UploadError, data_url_to_image, to_jpeg_b64
 
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
-VERSION = "3.8.0"
+VERSION = "3.9.0"
 log = logging.getLogger("dimora")
 
 
@@ -38,7 +38,7 @@ def create_app(store: Store | None = None) -> Flask:
         if app.config.get("DIMORA_SAME_ORIGIN"):
             return resp
         resp.headers["Access-Control-Allow-Origin"] = "*"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-AI-Provider, X-Gemini-Key, X-Gemini-Model, X-OpenRouter-Key, X-OpenRouter-Model, X-Ollama-Model, X-Ollama-Url"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-AI-Provider, X-Cloudflare-Token, X-Cloudflare-Account, X-Cloudflare-Model, X-OpenRouter-Key, X-OpenRouter-Model, X-Ollama-Model, X-Ollama-Url"
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         return resp
 
@@ -243,22 +243,22 @@ def create_app(store: Store | None = None) -> Flask:
         out = services.inspiration(ai, to_jpeg_b64(img, 900), b.get("styles", []), b.get("floors", []), b.get("finishes", []))
         return jsonify(**out, via=ai.used)
 
-    # ---------- "Make it Real" photo (Gemini image model), with a small daily allowance per user ----------
+    # ---------- "Make it Real" photo (FLUX.2 image model on Cloudflare Workers AI), with a small daily allowance per user ----------
     @app.post("/api/ai/make-real")
     def make_real():
         b, ai = body(), ai_client()
         img = data_url_to_image(b.get("image") or "")
-        own_key = bool(request.headers.get("X-Gemini-Key"))  # people using their own key aren't limited by the site's allowance
+        own_key = bool(request.headers.get("X-Cloudflare-Token"))  # people using their own key aren't limited by the site's allowance
         user = maybe_me()
         who = f"u:{user['id']}" if user else f"v:{visitor()}"
         day = time.strftime("%Y-%m-%d", time.gmtime(time.time() + 5.5 * 3600))  # the day in India
         limit = 0 if own_key else settings.photos_per_day
         left = db.take(f"photo:{who}", day, limit)
         if left is None:
-            return jsonify(error="photo_limit", message=f"You've made your {limit} free photos for today. Come back tomorrow, or add your own Gemini API key in Settings.",
+            return jsonify(error="photo_limit", message=f"You've made your {limit} free photos for today. Come back tomorrow, or add your own Cloudflare API token in Settings.",
                            limit=limit, left=0), 429
         try:
-            out = photo.make_real(ai.gemini_key, to_jpeg_b64(img, 1280), "image/jpeg", "exterior" if b.get("view") == "exterior" else "interior",
+            out = photo.make_real(ai.cf_account, ai.cf_token, to_jpeg_b64(img, 1280), "image/jpeg", "exterior" if b.get("view") == "exterior" else "interior",
                                   room=str(b.get("room") or ""), style=str(b.get("style") or ""),
                                   look="showcase" if b.get("look") == "showcase" else "")
         except AIError:
@@ -314,5 +314,5 @@ if __name__ == "__main__":
     print(f"DIMORA backend v{VERSION} → http://{settings.host}:{settings.port}")
     st = app.test_client().get("/api/health").get_json()["ai"]
     print(f"AI: provider={st['provider']} active={st['active']} | Ollama running={st['ollama']['running']} "
-          f"model {st['ollama']['model']} installed={st['ollama']['model_installed']} | Gemini key={'yes' if st['gemini']['configured'] else 'no'} ({st['gemini']['model']}) | OpenRouter key={'yes' if st['openrouter']['configured'] else 'no'}")
+          f"model {st['ollama']['model']} installed={st['ollama']['model_installed']} | Cloudflare={'yes' if st['cloudflare']['configured'] else 'no'} ({st['cloudflare']['model']}) | OpenRouter key={'yes' if st['openrouter']['configured'] else 'no'}")
     app.run(host=settings.host, port=settings.port, debug=False, threaded=True)

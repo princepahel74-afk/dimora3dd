@@ -17,6 +17,10 @@ services:
       - key: DIMORA_PUBLIC
         value: "1"
       - key: DIMORA_AI_PROVIDER
-        value: gemini
+        value: cloudflare
+      - key: CLOUDFLARE_ACCOUNT_ID
+        sync: false
+      - key: CLOUDFLARE_API_TOKEN
+        sync: false
       - key: DIMORA_MAX_UPLOAD_MB
         value: "15"

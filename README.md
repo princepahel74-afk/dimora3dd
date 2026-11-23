@@ -4,13 +4,13 @@
 
 Upload a 2D floor plan (single floor or multi-storey). DIMORA detects the walls, rooms, doors, windows and stairs, then builds a furnished 3D home. You can walk through it, edit it, budget it in ₹, and tour it with **Aria**, the AI guide.
 
-Version 2 moves the engine into a **Python backend** built on data structures and algorithms, and uses **Google Gemini** as its AI (v2.8; local Qwen through Ollama and OpenRouter remain as fallbacks).
+Version 2 moves the engine into a **Python backend** built on data structures and algorithms, and uses **Cloudflare Workers AI** as its AI (v3.9, before that Google Gemini; local Qwen through Ollama and OpenRouter remain as fallbacks).
 
 ```
  Browser (frontend/)                         Python backend (backend/)                      AI
  ───────────────────                         ─────────────────────────                      ──
- 3D WebGL2 renderer, 2D SVG editor,  ─HTTP→  Flask REST API (app.py)                  ─→  Google Gemini
- walk mode, tour camera, panels               ├─ vision/   OpenCV: sheet split, walls,       gemini-3.8-flash (GEMINI_API_KEY)
+ 3D WebGL2 renderer, 2D SVG editor,  ─HTTP→  Flask REST API (app.py)                  ─→  Cloudflare Workers AI
+ walk mode, tour camera, panels               ├─ vision/   OpenCV: sheet split, walls,       qwen3.8-27b + FLUX.2 (CLOUDFLARE_*)
                                               │            rooms, wall thickness, PDF        fallbacks: Ollama, OpenRouter
                                               ├─ dsa/      geometry, interval merging,
                                               │            spatial grid, room graphs
@@ -19,6 +19,13 @@ Version 2 moves the engine into a **Python backend** built on data structures an
                                               │            graph analytics, tour order
                                               └─ ai/       prompts + JSON validation
 ```
+
+## What's new in v3.9: Cloudflare Workers AI replaces Google Gemini
+
+- **One provider for every AI feature.** Plan reading, Aria, tour narration, style matching, the report summary and the 3 ideas now run on [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) through its OpenAI-compatible endpoint (`/accounts/<id>/ai/v1/chat/completions`). The default model is `@cf/qwen/qwen3.8-27b`, which reads images; Llama 4 Scout and Mistral Small 3.1 can be picked in ⚙ Settings. If Cloudflare retires the chosen model, DIMORA moves on to the next one by itself.
+- **Make it Real** uses a FLUX.2 image model on Workers AI (`@cf/black-forest-labs/flux-2-klein-9b`, falling back to `flux-2-dev`, then `flux-2-klein-4b`). The 3D view is sent as a reference image (Workers AI takes up to 512 × 512), and the photo comes back at 1280 px in the same shape as the view.
+- **Setup:** set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (see [Connect the AI](#connect-the-ai-cloudflare-workers-ai)). `GEMINI_API_KEY` is no longer used. An old `DIMORA_AI_PROVIDER=gemini` setting is read as `cloudflare`.
+- Ollama and OpenRouter still work as fallbacks.
 
 ## What's new in v3.8: sharper, more realistic lawn
 
@@ -129,18 +136,19 @@ Built for the **Google Startup Buildathon India 2026**. Try it with `samples/dim
    pip install -r requirements.txt
    copy .env.example .env             # Windows   (macOS / Linux: cp .env.example .env)
    ```
-4. Open `backend/.env` in Notepad and paste your key after `GEMINI_API_KEY=`. Get a free key at https://aistudio.google.com/apikey.
+4. Open `backend/.env` in Notepad and fill in `CLOUDFLARE_ACCOUNT_ID=` and `CLOUDFLARE_API_TOKEN=` (see [Connect the AI](#connect-the-ai-cloudflare-workers-ai)).
 5. Start it: `python app.py`, then open **http://127.0.0.1:8000** in Chrome.
 6. Click **Try it free** → upload `samples/dimora_test_plan_2bhk.png`, or open the 2BHK example from the landing page.
 
 ### Environment variables
 | Variable | Needed? | What it does |
 |---|---|---|
-| `GEMINI_API_KEY` | **Yes**, for AI features | Google Gemini key from Google AI Studio. Never put it in code or GitHub. |
-| `GEMINI_MODEL` | No (default `gemini-3.8-flash`) | Model that reads plans, powers Aria and the 3 ideas |
-| `GEMINI_IMAGE_MODEL` | No (default `gemini-3.1-flash-image`) | Image model for "Make it Real" |
+| `CLOUDFLARE_ACCOUNT_ID` | **Yes**, for AI features | Your 32-character Cloudflare account ID |
+| `CLOUDFLARE_API_TOKEN` | **Yes**, for AI features | A Cloudflare API token with the Workers AI permission. Never put it in code or GitHub. |
+| `CLOUDFLARE_MODEL` | No (default `@cf/qwen/qwen3.8-27b`) | Workers AI model that reads plans, powers Aria and the 3 ideas (it must accept images) |
+| `CLOUDFLARE_IMAGE_MODEL` | No (default `@cf/black-forest-labs/flux-2-klein-9b`) | Workers AI image model for "Make it Real" |
 | `DIMORA_PHOTOS_PER_DAY` | No (default 12) | "Make it Real" photos per user per day |
-| `DIMORA_AI_PROVIDER` | No (default `auto`) | `gemini` to use only Gemini |
+| `DIMORA_AI_PROVIDER` | No (default `auto`) | `cloudflare` to use only Cloudflare Workers AI |
 | `DATABASE_URL` | Recommended on Cloud Run | Postgres URL for accounts and share links (SQLite file otherwise) |
 | `DIMORA_PUBLIC` | Set `1` on a public site | Rate-limits AI calls paid with your key |
 
@@ -150,15 +158,15 @@ You need a Google Cloud project with billing enabled; new accounts get free cred
 git clone https://github.com/<your-user>/dimoratry.git && cd dimoratry && git checkout realistic-3d
 gcloud config set project YOUR_PROJECT_ID
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com
-# keep the Gemini key in Secret Manager (it never goes into the code)
-printf "%s" "PASTE_YOUR_GEMINI_KEY" | gcloud secrets create gemini-api-key --data-file=-
+# keep the Cloudflare API token in Secret Manager (it never goes into the code)
+printf "%s" "PASTE_YOUR_CLOUDFLARE_TOKEN" | gcloud secrets create cloudflare-api-token --data-file=-
 PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format='value(projectNumber)')
-gcloud secrets add-iam-policy-binding gemini-api-key --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/secretmanager.secretAccessor
+gcloud secrets add-iam-policy-binding cloudflare-api-token --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/secretmanager.secretAccessor
 # build from the Dockerfile and deploy (Mumbai region)
 gcloud run deploy dimora --source . --region asia-south1 --allow-unauthenticated \
   --memory 2Gi --cpu 2 --timeout 300 \
-  --set-env-vars DIMORA_PUBLIC=1,DIMORA_AI_PROVIDER=gemini,DIMORA_PHOTOS_PER_DAY=12 \
-  --set-secrets GEMINI_API_KEY=gemini-api-key:latest
+  --set-env-vars DIMORA_PUBLIC=1,DIMORA_AI_PROVIDER=cloudflare,DIMORA_PHOTOS_PER_DAY=12,CLOUDFLARE_ACCOUNT_ID=YOUR_ACCOUNT_ID \
+  --set-secrets CLOUDFLARE_API_TOKEN=cloudflare-api-token:latest
 ```
 Cloud Run prints the website URL (`https://dimora-xxxx.a.run.app`). Then:
 - **Google sign-in:** in Firebase Console → Authentication → Settings → Authorized domains, add the `…run.app` address.
@@ -181,22 +189,24 @@ python app.py
 
 Without an AI connected, everything still works. The computer vision runs on the backend, and Aria uses a rule-based parser. If the backend isn't running at all, the page falls back to a simpler in-browser engine.
 
-## Connect the AI (Google Gemini)
+## Connect the AI (Cloudflare Workers AI)
 
-DIMORA's AI is **Google Gemini** (default model `gemini-3.8-flash`).
+DIMORA's AI is **Cloudflare Workers AI** (default model `@cf/qwen/qwen3.8-27b`; photos by `@cf/black-forest-labs/flux-2-klein-9b`).
 
-**Setup (2 minutes):**
-1. Open [aistudio.google.com/apikey](https://aistudio.google.com/apikey), sign in with your Google account and click **Create API key**.
-2. Open `backend/.env` (created from `.env.example` the first time you run `run.bat`) and set `GEMINI_API_KEY=AIza…`.
-3. Restart the backend. ⚙ **Settings → Test AI** should say *Google Gemini · gemini-3.8-flash*.
+**Setup (5 minutes):**
+1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com) (a free account works) and open **AI → Workers AI**.
+2. Click **Use REST API**. Copy your **account ID**, then click **Create a Workers AI API token** and copy the token.
+3. Open `backend/.env` (created from `.env.example` the first time you run `run.bat`) and set `CLOUDFLARE_ACCOUNT_ID=…` and `CLOUDFLARE_API_TOKEN=…`.
+4. Restart the backend. ⚙ **Settings → Test AI** should say *Cloudflare Workers AI · qwen3.8-27b*.
 
-**Cost:** Google's free tier covers testing and light use. For a busy public site, enable billing in Google AI Studio for higher limits.
+**Cost:** the Workers Free plan includes a daily allowance of Workers AI usage, enough for testing. For a busy public site, move to Workers Paid. Some newer models on Workers AI need a paid plan; the error message says so when that happens.
 
-**Models:** set `GEMINI_MODEL` in `.env`, or pick one in ⚙ Settings:
-- `gemini-3.8-flash` (recommended);
-- `gemini-3.5-flash` (stable).
+**Models:** set `CLOUDFLARE_MODEL` in `.env`, or pick one in ⚙ Settings. It must accept images, because it reads floor plans:
+- `@cf/qwen/qwen3.8-27b` (recommended);
+- `@cf/meta/llama-4-scout-17b-16e-instruct` (fastest);
+- `@cf/mistralai/mistral-small-3.1-24b-instruct`.
 
-**Fallbacks:** with `DIMORA_AI_PROVIDER=auto` (the default), DIMORA uses Gemini when a key is set. Otherwise it tries local Qwen through [Ollama](https://ollama.com) (`ollama pull qwen3.5:9b`), then OpenRouter (`OPENROUTER_API_KEY`). To force one, set `DIMORA_AI_PROVIDER` to `gemini`, `ollama` or `openrouter`.
+**Fallbacks:** with `DIMORA_AI_PROVIDER=auto` (the default), DIMORA uses Cloudflare when both the account ID and the token are set. Otherwise it tries local Qwen through [Ollama](https://ollama.com) (`ollama pull qwen3.5:9b`), then OpenRouter (`OPENROUTER_API_KEY`). To force one, set `DIMORA_AI_PROVIDER` to `cloudflare`, `ollama` or `openrouter`.
 
 **What the AI does in DIMORA:**
 - names rooms and reads the scale, doors, windows, stairs and floor titles;
@@ -216,7 +226,7 @@ The AI never edits the home directly. It returns JSON that the backend validates
 - **Stairs:** found from their tread lines, even without AI.
 - **Fix anything before generating:** on the detection screen you can select and move rooms; **＋ Room** (drag), **＋ Door** and **＋ Window** (click a wall) add items; **Delete** (or the Del key) removes them. You can also rename rooms and change their type in the list.
 - **For the best results:**
-  - Connect Gemini: it reads room names, printed dimensions and floor titles.
+  - Connect Cloudflare Workers AI: it reads room names, printed dimensions and floor titles.
   - Or type the real plan width.
   - Use the original PDF or a high-resolution image.
 
@@ -254,13 +264,13 @@ The backend then:
 | GET | `/api/projects` | your saved homes (summaries) |
 | GET · PUT · DELETE | `/api/projects/<id>` | open, save `{project, summary}`, delete one home |
 
-AI endpoints return **503 `ai_unavailable`** when no model is connected; the frontend then uses its rule-based fallbacks. To choose the provider per request, send the headers `X-AI-Provider`, `X-OpenRouter-Key`, `X-OpenRouter-Model` and `X-Ollama-Model`.
+AI endpoints return **503 `ai_unavailable`** when no model is connected; the frontend then uses its rule-based fallbacks. To choose the provider per request, send the headers `X-AI-Provider`, `X-Cloudflare-Account`, `X-Cloudflare-Token`, `X-Cloudflare-Model`, `X-OpenRouter-Key`, `X-OpenRouter-Model` and `X-Ollama-Model`.
 
 ## Tests
 ```bash
 cd backend
 pip install -r requirements-dev.txt
-python -m pytest -q             # 53 tests: DSA units + API (AI mocked, incl. a fake Gemini server)
+python -m pytest -q             # 70 tests: DSA units + API (AI mocked, incl. a fake Cloudflare Workers AI server)
 python tests/fake_ollama.py     # optional: a fake Ollama on :11434 for end-to-end runs with no GPU
 ```
 
@@ -281,10 +291,10 @@ backend/
     planner/layout.py         pixels → metres, room typing, snapping, doors/windows (union-find de-dup)
     planner/floors.py         floor names/levels, alignment (Hungarian matching), stair fitting
     planner/analysis.py       graph analytics and tour order
-    ai/client.py              Gemini (main), Ollama/OpenRouter fallbacks, JSON extraction
+    ai/client.py              Cloudflare Workers AI (main), Ollama/OpenRouter fallbacks, JSON extraction
     ai/services.py            prompts and validation of every AI answer
     pipeline.py               uploads → finished floors
-  tests/                      pytest suite + fake Ollama server
+  tests/                      pytest suite + fake Ollama, OpenRouter and Cloudflare servers
 frontend/                     the web app (HTML/CSS/JS, WebGL2 3D engine)
 docs/DSA.md                   every data structure and algorithm, with complexity
 samples/                      two one-floor plans to try
@@ -364,9 +374,9 @@ Your 2D plan now comes out looking like a finished modern house (the Planner 5D 
 Walls, balcony railings and the boundary wall stop you; doorways let you through. The keys are ignored while you type in a text box, and **⌨ WASD** in the toolbar shows this help.
 
 ## The complete app (v2.6)
-**Your Gemini API key goes on the server, never in the page.**
-- On your PC, open `backend/.env` (copied from `.env.example` the first time you run `run.bat`). Set `GEMINI_API_KEY=AIza…`, then restart.
-- On Render, set `GEMINI_API_KEY` under *Environment*. `render.yaml` asks for the key when you create the Blueprint.
+**Your Cloudflare API token goes on the server, never in the page.** (Since v3.9; v2.6–v3.8 used a Gemini key the same way.)
+- On your PC, open `backend/.env` (copied from `.env.example` the first time you run `run.bat`). Set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`, then restart.
+- On Render, set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` under *Environment*. `render.yaml` asks for both when you create the Blueprint.
 - ⚙ Settings → *Test AI* checks it. Clear messages tell you if the key is wrong, the model name is out of date, or you've hit the free-tier limit.
 - Visitors never see the key. In public mode (`DIMORA_PUBLIC=1`), each visitor gets an hourly allowance.
 
@@ -445,7 +455,7 @@ so the hosted site uses OpenRouter.
 
 **3. Deploy on Render (5–10 min).**
 - Sign up at render.com with your GitHub account, then New → Blueprint → choose the `dimora` repo.
-- When asked for `GEMINI_API_KEY`, paste your Gemini key, then click Apply.
+- When asked for `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`, paste your Cloudflare account ID and Workers AI token, then click Apply.
 - The first build takes about 5 minutes. Your site is then live at `https://dimora-xxxx.onrender.com`.
   Share that link.
 - Every change you push to GitHub redeploys the site automatically. Settings → Custom Domains lets you
@@ -458,11 +468,11 @@ The Starter instance ($7/month) stays awake and is faster.
 **Public-site protection** (on by default in `render.yaml` and the Dockerfile with `DIMORA_PUBLIC=1`):
 - Each visitor gets `DIMORA_AI_PER_HOUR` AI calls an hour on your key (default 20). The whole site gets
   `DIMORA_AI_PER_DAY` (default 500). After that DIMORA quietly continues with its rule-based engine.
-- Visitors who paste their own OpenRouter key in ⚙ Settings use their own credits and aren't limited.
+- Visitors who paste their own Cloudflare token (or OpenRouter key) in ⚙ Settings use their own credits and aren't limited.
 - Visitors can't make your server call other addresses. The Ollama-URL override is ignored.
 - Uploads are capped at `DIMORA_MAX_UPLOAD_MB`.
 
-**Other hosts.** With Docker: `docker build -t dimora . && docker run -p 8000:8000 -e GEMINI_API_KEY=… dimora`.
+**Other hosts.** With Docker: `docker build -t dimora . && docker run -p 8000:8000 -e CLOUDFLARE_ACCOUNT_ID=… -e CLOUDFLARE_API_TOKEN=… dimora`.
 Static-only hosts (GitHub Pages, Netlify, Vercel) can serve `frontend/`, but they run the simpler
 in-browser engine unless ⚙ Settings → Backend URL points at a running DIMORA backend.
 

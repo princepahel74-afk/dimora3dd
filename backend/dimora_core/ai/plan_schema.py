@@ -1,6 +1,6 @@
-"""Structured floor-plan reading with Gemini (plan format v2).
+"""Structured floor-plan reading with the AI (Cloudflare Workers AI by default; plan format v2).
 
-Gemini is asked to read the whole drawing — printed room names and sizes, walls, doors, windows and the outside
+The model is asked to read the whole drawing — printed room names and sizes, walls, doors, windows and the outside
 (balcony, porch with steps, parking, gardens, trees, gate, road) — and answer in ONE strict JSON format (in feet).
 Everything it returns is validated here and turned into a DIMORA floor in metres. Anything missing gets a sensible
 Indian-home default: 10 ft ceiling, 7 ft doors, 3 ft window sills, 9-inch outer and 4.5-inch inner walls.
@@ -15,7 +15,7 @@ TAG = "DIMORA-PLAN-V2"  # marks the prompt (handy for tests and logs)
 
 DEFAULTS = {"ceiling_ft": 10.0, "door_h_ft": 7.0, "window_sill_ft": 3.0, "window_h_ft": 4.0, "outer_wall_in": 9.0, "inner_wall_in": 4.5}
 
-# room types Gemini may use → DIMORA room types
+# room types the model may use → DIMORA room types
 TYPE_MAP = {
     "living": "living", "drawing": "living", "hall": "hall", "passage": "hall", "corridor": "hall", "lobby": "hall", "foyer": "hall",
     "dining": "dining", "kitchen": "kitchen", "bedroom": "bedroom", "master": "master", "master_bedroom": "master", "guest": "guest",
@@ -104,7 +104,7 @@ def room_type(t: str, name: str = "") -> str:
 
 
 def validate(raw) -> tuple[dict, list[str]]:
-    """Clean Gemini's JSON: drop broken entries, clamp numbers, fill defaults. Returns (plan, warnings)."""
+    """Clean the model's JSON: drop broken entries, clamp numbers, fill defaults. Returns (plan, warnings)."""
     warn: list[str] = []
     raw = raw if isinstance(raw, dict) else {}
     house = raw.get("house") if isinstance(raw.get("house"), dict) else {}
