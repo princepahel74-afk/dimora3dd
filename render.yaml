@@ -1,0 +1,22 @@
+# Owner-only DIMORA preview with its Flask API on the same origin.
+services:
+  - type: web
+    name: dimora-private
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --chdir backend -w 1 --threads 4 -t 180 -b 0.0.0.0:$PORT render_app:app
+    healthCheckPath: /healthz
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DIMORA_OWNER_PASSWORD
+        sync: false
+      - key: DIMORA_PUBLIC
+        value: "1"
+      - key: DIMORA_AI_PROVIDER
+        value: gemini
+      - key: DIMORA_MAX_UPLOAD_MB
+        value: "15"

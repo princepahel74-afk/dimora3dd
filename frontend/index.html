@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="DIMORA turns any floor plan into a furnished, priced 3D home you can walk through — with Aria, an AI tour guide powered by Google Gemini.">
+<meta name="theme-color" content="#0b0f19">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="DIMORA">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M16 2 29 9.5v13L16 30 3 22.5v-13z%22 fill=%22none%22 stroke=%22%238b5cf6%22 stroke-width=%222.4%22/%3E%3Cpath d=%22M16 9 23 13v7l-7 4-7-4v-7z%22 fill=%22%2322d3ee%22/%3E%3C/svg%3E">
+<title>DIMORA — AI Floor Plan to 3D Home Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/explore.css">
+</head>
+<body>
+<div id="app" data-screen="login">
+
+<!-- ============ PRIVATE SITE HOME ============ -->
+<section id="private-home" class="screen" aria-labelledby="private-title">
+  <header class="private-header">
+    <a href="/" class="private-brand"><img src="assets/logo.svg" alt="">DIMORA</a>
+    <button class="private-link" type="button" data-act="start">My projects</button>
+  </header>
+  <main class="private-main">
+    <div class="private-intro">
+      <div class="private-type">3D HOME STUDIO</div>
+      <h1 id="private-title">Explore the duplex<br><em>from street to sofa.</em></h1>
+      <p>Walk through the garden, see the house in its neighbourhood, then step inside the furnished rooms.</p>
+      <button class="private-cta" type="button" data-act="explore-duplex">Explore the duplex</button>
+    </div>
+    <figure class="private-cover">
+      <picture>
+        <source srcset="assets/landing/duplex-concept.webp" type="image/webp">
+        <img src="assets/landing/ex-duplex.jpg" alt="Concept view of a modern duplex on a planted residential street" width="1200" height="800" fetchpriority="high">
+      </picture>
+      <figcaption>Exterior concept</figcaption>
+    </figure>
+  </main>
+  <section class="private-examples" aria-label="Additional designs">
+    <button type="button" data-act="example" data-id="2bhk"><img src="assets/landing/ex-2bhk.jpg" alt="" loading="lazy"><span><b>2BHK house</b><small>Front garden, porch and parking</small></span></button>
+    <button type="button" data-act="example" data-id="apartment"><img src="assets/landing/ex-apartment.jpg" alt="" loading="lazy"><span><b>City apartment</b><small>Furnished 2BHK with balcony</small></span></button>
+    <button type="button" data-act="example" data-id="2bhk-show"><img src="assets/landing/3d-2bhk.jpg" alt="" loading="lazy"><span><b>Property showcase</b><small>Scroll through Green Court Residence</small></span></button>
+  </section>
+</section>
+
+<!-- ============ LOGIN ============ -->
+<section id="login" class="screen">
+  <div class="auth">
+    <aside class="auth-brand">
+      <div class="logo"><span class="mark">◇</span>DIMORA</div>
+      <div class="auth-hero">
+        <p class="eyebrow">Floor plan → living 3D home</p>
+        <h1>Your home's future<br><em>starts with a sign-in.</em></h1>
+        <ul class="auth-points"><li><b>Upload</b> any JPG, PNG or PDF floor plan</li><li><b>Gemini AI</b> + computer vision detect every room, door and window</li><li><b>Aria</b> gives you a narrated 3D tour — and edits as you talk</li><li><b>₹ budgets</b>, daylight, space &amp; structure checks</li></ul>
+      </div>
+      <svg viewBox="0 -40 520 340" class="auth-art" aria-hidden="true"><path d="M260 250 L470 135 L260 20 L50 135 Z" fill="#111827" stroke="#7c3aed" stroke-width="1.5"/><path d="M50 135 L50 90 L260 -25 L260 20 Z" fill="#1e293b" stroke="#7c3aed" stroke-width="1.2"/><path d="M260 20 L260 -25 L470 90 L470 135 Z" fill="#161f33" stroke="#7c3aed" stroke-width="1.2"/><path d="M155 192 L365 77" stroke="#22d3ee" stroke-dasharray="5 5" opacity=".6"/><path d="M200 165 L245 141 L287 164 L242 188 Z" fill="#06b6d4"/><path d="M320 120 L350 104 L382 121 L352 137 Z" fill="#ec4899"/></svg>
+      <small class="muted">Cost figures are illustrative · Your data stays in this browser</small>
+    </aside>
+    <main class="auth-panel"><div class="auth-card" id="auth-card"></div></main>
+  </div>
+</section>
+
+<!-- ============ INTRO QUESTIONS ============ -->
+<section id="intro" class="screen"><div class="intro-wrap" id="intro-card"></div></section>
+
+
+<!-- ============ LANDING (Obsidian Neon) ============ -->
+<section id="landing" class="screen">
+  <a class="skip" href="#hero-title">Skip to content</a>
+  <header class="nav" id="nav">
+    <div class="nav-in">
+      <a class="nav-logo" href="#top" aria-label="DIMORA home"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c084fc"/><stop offset=".5" stop-color="#818cf8"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><path d="M16 2 29 9.5v13L16 30 3 22.5v-13z" fill="none" stroke="url(#lg1)" stroke-width="2.2"/><path d="M16 9 23 13v7l-7 4-7-4v-7z" fill="url(#lg1)" opacity=".85"/></svg><span>DIMORA</span></a>
+      <nav class="nav-links" aria-label="Primary"><a href="#how">How it works</a><a href="#features">Features</a><a href="#examples">Examples</a><a href="#plans">Plans</a><a href="#faq">FAQ</a></nav>
+      <div class="nav-cta"><button class="ds-btn ghost sm install-btn" data-act="install-app" hidden>⤓ Install app</button><button class="ds-btn ghost sm" data-act="go-login">Log in</button><button class="ds-btn primary sm pill" data-act="start">Try it free</button></div>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false" aria-controls="mnav"><span></span><span></span></button>
+    </div>
+  </header>
+  <div class="mnav" id="mnav" aria-hidden="true"><a href="#how">How it works</a><a href="#features">Features</a><a href="#examples">Examples</a><a href="#plans">Plans</a><a href="#faq">FAQ</a><div class="mnav-cta"><button class="ds-btn ghost" data-act="go-login">Log in</button><button class="ds-btn primary" data-act="start">Try it free</button></div></div>
+
+  <main id="top">
+  <!-- HERO -->
+  <section class="hero2" aria-labelledby="hero-title">
+    <div class="dots-bg" aria-hidden="true"></div><div class="gradient-orb orb-a" aria-hidden="true"></div><div class="gradient-orb orb-b" aria-hidden="true"></div>
+    <div class="wrap hero2-in">
+      <a class="announce" href="#faq"><i class="dot emerald"></i><span class="announce-tag">AI</span>Powered by Google Gemini<span aria-hidden="true">→</span></a>
+      <h1 id="hero-title" class="hero2-h1">Upload your 2D floor plan and get a <span class="gradient-text">realistic 3D home in seconds.</span></h1>
+      <p class="hero2-sub">Take a photo or scan of any house plan. DIMORA reads every room, door and window, builds a furnished 3D home with garden and parking, and lets you walk through it — no design skills needed.</p>
+      <div class="cta-group"><button class="ds-btn primary lg xl-cta" data-act="start">Try it free</button></div>
+      <p class="hero-or"><a href="#examples">or open an example — no upload needed ↓</a></p>
+      <div class="hero-visual" id="hero-visual">
+        <div class="hv-bar"><div class="hv-dots"><i></i><i></i><i></i></div><div class="hv-pills" role="group" aria-label="View mode"><button class="vpill on" data-hero="furnished" aria-pressed="true">Furnished</button><button class="vpill" data-hero="cutaway" aria-pressed="false">Cutaway</button><button class="vpill" data-hero="night" aria-pressed="false">Night</button></div><span class="hv-live"><i class="dot emerald"></i>Live WebGL</span></div>
+        <div class="hv-stage"><canvas id="hero-gl" aria-label="Interactive 3D model of the sample 2BHK apartment. Drag to orbit."></canvas><div class="hv-fallback" id="hero-fallback">3D preview needs WebGL2</div>
+          <span class="stat-badge sb-tl"><b class="c-cyan">12</b> rooms detected</span><span class="stat-badge sb-br" id="hero-cost"><b class="c-violet">₹—</b> est. interior</span><span class="hv-hint">Drag to orbit · scroll the page as usual</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST STRIP -->
+  <section class="logos reveal" aria-label="Built with">
+    <p class="logos-label">Built with Google technology</p>
+    <ul class="logos-row plain"><li><span>Google Gemini</span></li><li><span>Gemini image model</span></li><li><span>Firebase sign-in</span></li><li><span>Cloud Firestore</span></li><li><span>Google Cloud Run</span></li></ul>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="sec" id="how">
+    <div class="wrap">
+      <div class="sec-head reveal"><span class="sec-tag">How it works</span><h2 class="sec-h2">Three steps. <span class="gradient-text">That's it.</span></h2></div>
+      <div class="how3">
+        <div class="how-card reveal"><span class="how-n">1</span><h3>Upload plan</h3><p>A JPG, PNG or PDF of your house plan. A clear phone photo of a printed plan works too.</p></div>
+        <div class="how-card reveal"><span class="how-n">2</span><h3>AI reads rooms</h3><p>Google Gemini reads every room name and size, the doors, windows, balcony, parking and garden.</p></div>
+        <div class="how-card reveal"><span class="how-n">3</span><h3>Walk through your 3D home</h3><p>A furnished, realistic 3D home appears. Walk room by room, change styles, or make a real photo of any view.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEFORE / AFTER -->
+  <section class="sec" id="compare">
+    <div class="wrap">
+      <div class="sec-head reveal"><span class="sec-tag">Before → After</span><h2 class="sec-h2">Same plan. <span class="gradient-text">Now it's a home.</span></h2><p class="sec-sub">Drag the handle. Left: the 2D plan that was uploaded. Right: the 3D home DIMORA built from it — same rooms, same sizes.</p></div>
+      <div class="ba reveal" id="ba" style="--ba-ar:0.671;max-width:620px"><img id="ba-after" class="ba-img" src="assets/landing/3d-2bhk.jpg" alt="3D home built by DIMORA from the 2BHK test plan, seen from above" loading="lazy"><img id="ba-before" class="ba-img ba-before" src="assets/landing/plan-2bhk.png" alt="The 2BHK test floor plan" loading="lazy"><span class="ba-lbl before">2D plan</span><span class="ba-lbl after">DIMORA 3D</span>
+        <div class="ba-handle" id="ba-handle" role="slider" tabindex="0" aria-label="Compare the 2D plan and the 3D home" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><span class="ba-knob">⟷</span></div></div>
+      <div class="metrics reveal"><span class="metric"><b class="c-cyan">14</b> rooms &amp; outside areas read</span><span class="metric"><b class="c-violet">1,440</b> sq ft measured exactly</span><span class="metric"><b class="c-emerald">36 × 40 ft</b> house, true to scale</span></div>
+    </div>
+  </section>
+
+  <!-- BENTO -->
+  <section class="sec" id="features">
+    <div class="wrap">
+      <div class="sec-head reveal"><span class="sec-tag">Everything your home needs</span><h2 class="sec-h2">Everything in <span class="gradient-text">one 3D home.</span></h2><p class="sec-sub">See it, change it, price it and share it — with an AI helper that makes the changes for you.</p></div>
+      <div class="bento-grid">
+        <article class="bento reveal" style="--acc:124,58,237"><span class="b-tag">AI Assistant</span><h3>Aria doesn't just answer. She edits your home.</h3><p>Say “convert the study into a gaming room under ₹60,000”. Aria re-plans the furniture, repaints, re-prices and shows you the result in 3D.</p>
+          <div class="mini-chat"><div class="mc u">Paint the master bedroom sage &amp; add a reading lamp</div><div class="mc a"><i class="dot emerald"></i>Done — painted it Sage Mist and placed a floor lamp beside the armchair. Room total: ₹1,94,449.</div></div></article>
+        <article class="bento reveal" style="--acc:6,182,212"><span class="b-tag">Detection</span><h3>Floor plan → rooms in seconds</h3><p>Google Gemini reads room names, sizes, doors and windows straight from your drawing — and gets the scale right.</p>
+          <div class="mini-scan" aria-hidden="true"><i style="left:6%;top:10%;width:46%;height:50%"></i><i style="left:54%;top:10%;width:40%;height:34%"></i><i style="left:6%;top:63%;width:40%;height:30%"></i><i style="left:48%;top:47%;width:46%;height:46%"></i><b></b></div></article>
+        <article class="bento tall reveal" style="--acc:236,72,153"><span class="b-tag">Space Analyzer</span><h3>Finds the corner you never use</h3><p>Walking clearance, door swings and furniture fit, checked on a 10 cm grid. Unused corners become a study nook or storage in one click.</p>
+          <svg class="mini-plan" viewBox="0 0 200 220" aria-hidden="true"><rect x="10" y="10" width="180" height="200" rx="4" fill="rgba(255,255,255,.02)" stroke="#cbd5e1" stroke-width="3"/><rect x="60" y="18" width="80" height="96" rx="4" fill="#1e293b" stroke="#64748b"/><rect x="66" y="22" width="30" height="16" rx="3" fill="#334155"/><rect x="104" y="22" width="30" height="16" rx="3" fill="#334155"/><rect x="18" y="150" width="70" height="26" rx="3" fill="#1e293b" stroke="#64748b"/><rect x="118" y="132" width="64" height="70" fill="url(#hp)" stroke="#ec4899" stroke-dasharray="4 3"/><defs><pattern id="hp" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#ec4899" stroke-width="2.5" opacity=".45"/></pattern></defs><text x="150" y="170" text-anchor="middle" fill="#f9a8d4" font-size="10" font-family="Inter" font-weight="700">unused</text><text x="150" y="183" text-anchor="middle" fill="#f9a8d4" font-size="9" font-family="Inter">1.4 m²</text><path d="M20 120 A 34 34 0 0 1 54 86" fill="none" stroke="#94a3b8"/></svg>
+          <ul class="b-list"><li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> 0.75 m in front of wardrobes</li><li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Door swings kept clear</li><li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Fit checker for any piece</li></ul></article>
+        <article class="bento reveal" style="--acc:16,185,129"><span class="b-tag">Budget · ₹</span><h3>Costs that explain themselves</h3><p>Every rupee traced to sq ft × rate. Set a budget and the optimiser finds cheaper swaps.</p>
+          <div class="mini-bars" aria-hidden="true"><span style="--w:82%">Furniture</span><span style="--w:44%">Flooring</span><span style="--w:28%">Painting</span><span style="--w:19%">Lighting</span></div></article>
+        <article class="bento reveal" style="--acc:245,158,11"><span class="b-tag">Sun &amp; Vastu</span><h3>See where the morning sun comes in</h3><p>The sun moves through your real windows. Simple Vastu hints for every room — general guidance, clearly marked.</p>
+          <svg class="mini-sun" viewBox="0 0 220 80" aria-hidden="true"><path d="M10 70 Q110 -20 210 70" fill="none" stroke="rgba(245,158,11,.4)" stroke-dasharray="4 4"/><circle cx="110" cy="25" r="9" fill="#f59e0b"><animateMotion dur="6s" repeatCount="indefinite" path="M-100 45 Q0 -45 100 45"/></circle><line x1="0" y1="70" x2="220" y2="70" stroke="rgba(255,255,255,.12)"/></svg></article>
+        <article class="bento wide2 reveal" style="--acc:99,102,241"><span class="b-tag">Make it Real</span><h3>One click: a real photo of your future home</h3><p>Gemini turns any 3D view into a photorealistic picture with the same rooms and furniture. Download it, share it, decide faster. Plus room list with sq ft, PDF summary, 3D model download and a view-only link.</p>
+          <div class="mini-graph" aria-hidden="true"><i style="left:8%;top:30%"></i><i style="left:30%;top:12%"></i><i style="left:30%;top:62%"></i><i style="left:55%;top:36%"></i><i style="left:78%;top:14%"></i><i style="left:80%;top:64%" class="warn"></i><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M10 34 L32 16 M10 34 L32 66 M32 16 L57 40 M32 66 L57 40 M57 40 L80 18" stroke="rgba(99,102,241,.6)" stroke-width=".8" fill="none" vector-effect="non-scaling-stroke"/><path d="M57 40 L82 68" stroke="#ec4899" stroke-dasharray="3 3" stroke-width="1" vector-effect="non-scaling-stroke"/></svg></div></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXAMPLES -->
+  <section class="sec" id="examples">
+    <div class="wrap">
+      <div class="sec-head reveal"><span class="sec-tag">Examples</span><h2 class="sec-h2">Try it without <span class="gradient-text">uploading anything.</span></h2><p class="sec-sub">Click a plan to open it in 3D — or watch it as a property showcase.</p></div>
+      <button class="sc-promo reveal" data-act="example" data-id="2bhk-show"><img src="assets/landing/ex-2bhk.jpg" alt="" loading="lazy"><span><small>New · Property Showcase</small><b>From a 2D plan to a cinematic home tour you can share</b><em>Scroll from the street, through the roof, into every room. Made automatically — no agency needed. ▶ Watch the 2BHK showcase</em></span></button>
+      <div class="ex-grid">
+        <button class="ex-card reveal" data-act="example" data-id="2bhk"><span class="ex-imgs"><img src="assets/landing/plan-2bhk.png" alt="2BHK test plan" loading="lazy"><img src="assets/landing/ex-2bhk.jpg" alt="The 2BHK test plan in 3D" loading="lazy"></span><b>2BHK house · 36 × 40 ft</b><span>1,440 sq ft · porch, parking, front &amp; back garden</span></button>
+        <button class="ex-card reveal" data-act="example" data-id="apartment"><span class="ex-imgs one"><img src="assets/landing/ex-apartment.jpg" alt="Sample apartment in 3D" loading="lazy"></span><b>City apartment · 2BHK</b><span>Furnished flat with balcony</span></button>
+        <button class="ex-card reveal" data-act="example" data-id="duplex"><span class="ex-imgs one"><img src="assets/landing/ex-duplex.jpg" alt="Sample duplex in 3D" loading="lazy"></span><b>Duplex villa · G+1</b><span>Two storeys, staircase, garage, terrace</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHOWCASE -->
+  <section class="sec showcase-sec" id="showcase">
+    <div class="wrap">
+      <div class="sec-head reveal"><span class="sec-tag">Aria · AI home tour</span><h2 class="sec-h2">Meet Aria, your <span class="gradient-text">AI tour guide.</span></h2><p class="sec-sub">A cinematic camera walks you room to room through real doorways. Aria narrates each space with its real facts. Pause anywhere and ask her to change it.</p></div>
+      <div class="showcase reveal">
+        <div class="sc-bar"><div class="hv-pills" role="group" aria-label="Showcase view"><button class="vpill on" data-sc="tour" aria-pressed="true">AI Tour</button><button class="vpill" data-sc="walk" aria-pressed="false">Walk-through</button><button class="vpill" data-sc="night" aria-pressed="false">Evening</button></div></div>
+        <div class="sc-canvas"><img id="sc-img" alt="Interior render of the living room generated by DIMORA" hidden><div class="sc-loading" id="sc-loading">Rendering interior…</div>
+          <div class="sc-aria"><div class="aria-avatar big talking"><div class="face"><i></i><i></i><b></b></div><div class="ring"></div></div><div class="sc-cap"><small id="sc-room">Living Room · 5.2 × 4.6 m</small><p id="sc-cap">Welcome to the Living Room — the social heart of your home.</p></div></div>
+          <span class="stat-badge sb-tl"><i class="dot pink"></i><b class="c-pink">Narrating</b> live</span><span class="stat-badge sb-tr" id="sc-badge2"><b class="c-cyan">—</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANS -->
+  <section class="sec" id="plans">
+    <div class="wrap">
+      <div class="sec-head reveal"><span class="sec-tag">Plans</span><h2 class="sec-h2">Start free. <span class="gradient-text">Go Pro when you need more.</span></h2></div>
+      <div class="plan-table reveal" role="region" aria-label="Free and Pro plans" tabindex="0"><table>
+        <thead><tr><th></th><th><span class="pl-name">Free</span><span class="pl-price">₹0</span><span class="pl-per">forever</span></th><th class="pro"><span class="pl-name">Pro</span><span class="pl-price">₹499</span><span class="pl-per">per month · or ₹4,999 a year</span></th></tr></thead>
+        <tbody>
+          <tr><td>Saved homes</td><td>3</td><td>Unlimited</td></tr>
+          <tr><td>Plan reading by Google Gemini</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Realistic 3D, walkthrough, garden &amp; parking</td><td>✓</td><td>✓</td></tr>
+          <tr><td>"Make it Real" photos &amp; showcase photos</td><td>12 a day</td><td>50 a day, high resolution</td></tr>
+          <tr><td>Room list, sq ft &amp; Vastu hints</td><td>✓</td><td>✓</td></tr>
+          <tr><td>PDF summary &amp; view-only share link</td><td>✓</td><td>✓</td></tr>
+          <tr><td>3D model download (GLB)</td><td>—</td><td>✓</td></tr>
+          <tr><td>"3 layout ideas" by Gemini</td><td>3 a day</td><td>Unlimited</td></tr>
+          <tr><td>Multi-storey plans</td><td>Up to 2 floors</td><td>Up to 15 floors</td></tr>
+          <tr><td>Support</td><td>Community</td><td>Priority (email)</td></tr>
+        </tbody>
+        <tfoot><tr><td></td><td><button class="ds-btn ghost" data-act="start">Try it free</button></td><td><button class="ds-btn primary" data-act="start">Start with Pro</button></td></tr></tfoot>
+      </table></div>
+      <p class="plan-note">Prices include GST. During the buildathon preview every account gets the Pro features at no cost.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="sec" id="faq">
+    <div class="wrap faq-wrap">
+      <div class="sec-head reveal"><span class="sec-tag">FAQ</span><h2 class="sec-h2">Questions, <span class="gradient-text">answered.</span></h2></div>
+      <div class="faq reveal">
+        <details open><summary>Which file types work?</summary><p>JPG, PNG, WEBP and PDF. A scanned plan or a clear phone photo of a printed plan works too. Plans with printed room names and sizes give the best result.</p></details>
+        <details><summary>Does it handle multi-storey plans?</summary><p>Yes. Upload one image per floor, or one sheet with all floors on it. DIMORA stacks the floors and connects them with the staircase.</p></details>
+        <details><summary>Is my plan private?</summary><p>Your plan is used only to build your home. Your saved homes are visible only to you (each account can read only its own data). Share links are view-only and are created only when you click "Share". You can delete your account and all your data from Account settings.</p></details>
+        <details><summary>Which AI does it use?</summary><p>Powered by Google Gemini. Gemini reads your plan, powers the Aria assistant and the "3 layout ideas", and a Gemini image model makes the "Make it Real" photos (they carry Google's SynthID watermark).</p></details>
+        <details><summary>Do I need to install anything?</summary><p>No. It runs in your browser on a laptop or phone. You can also install it like an app from the browser menu.</p></details>
+        <details><summary>Are the Vastu hints and costs exact?</summary><p>No — they are general guidance and estimates to help you decide, not professional, structural or religious advice.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta" id="final">
+    <div class="final-orb" aria-hidden="true"></div><div class="particles" id="particles" aria-hidden="true"></div>
+    <div class="wrap final-in reveal"><h2 class="sec-h2 xl">Your plan is one upload away <span class="gradient-text">from a real-looking home.</span></h2><p class="sec-sub">Free to try. No design skills needed. Powered by Google Gemini.</p>
+      <div class="cta-group"><button class="ds-btn primary lg xl-cta" data-act="start">Try it free</button></div></div>
+  </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-grid">
+      <div class="foot-brand"><a class="nav-logo" href="#top"><svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c084fc"/><stop offset=".5" stop-color="#818cf8"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><path d="M16 2 29 9.5v13L16 30 3 22.5v-13z" fill="none" stroke="url(#lg1)" stroke-width="2.2"/><path d="M16 9 23 13v7l-7 4-7-4v-7z" fill="url(#lg1)" opacity=".85"/></svg><span>DIMORA</span></a><p>Don't just see your home.<br>Understand what it could become.</p>
+        <div class="socials"><a href="https://github.com" target="_blank" rel="noopener" aria-label="GitHub"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></a><a href="https://x.com" target="_blank" rel="noopener" aria-label="X (Twitter)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></a><a href="https://discord.com" target="_blank" rel="noopener" aria-label="Discord community"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg></a></div></div>
+      <nav aria-label="Product"><h4>Product</h4><a href="#how">How it works</a><a href="#features">Features</a><a href="#examples">Examples</a><a href="#plans">Plans</a><a href="#faq">FAQ</a></nav>
+      <nav aria-label="Developers"><h4>Developers</h4><a href="https://ai.google.dev/gemini-api/docs" target="_blank" rel="noopener">Gemini API docs</a><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get a Gemini API key</a><a href="https://firebase.google.com/docs/auth" target="_blank" rel="noopener">Firebase Auth</a><a href="#tech">Under the hood</a></nav>
+      <nav aria-label="Company"><h4>Company</h4><a href="#how">About DIMORA</a><a href="#" data-act="contact">Contact</a><a href="#" data-act="legal" data-k="privacy">Privacy</a><a href="#" data-act="legal" data-k="terms">Terms</a></nav>
+    </div>
+    <div class="wrap foot-bottom"><span>© 2026 DIMORA. Cost figures are illustrative estimates, not market quotations.</span><span><a href="#" data-act="legal" data-k="privacy">Privacy</a> · <a href="#" data-act="legal" data-k="terms">Terms</a></span></div>
+  </footer>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="dash" class="screen">
+  <nav class="d-nav"><button class="logo home-link" type="button" data-act="go-landing"><span class="mark">◇</span>DIMORA</button><div class="row"><span id="gemma-badge-d" class="gbadge" data-act="settings"></span><button class="btn ghost sm" data-act="onboard">Preferences</button><button class="uchip" data-act="account"></button><button class="btn ghost sm" data-act="settings">⚙ Settings</button></div></nav>
+  <div class="d-wrap">
+    <div class="d-head"><div><p class="eyebrow">Your projects</p><h2 id="dash-hello">Welcome back</h2></div><div class="row"><button class="btn ghost install-btn" data-act="install-app" hidden>⤓ Install app</button><button class="btn ghost" data-act="sample">Open sample 2BHK</button><button class="btn primary" data-act="new-upload">＋ New from floor plan</button></div></div>
+    <div id="dash-prefs" class="prefs-strip"></div>
+    <div id="proj-grid" class="proj-grid"></div>
+  </div>
+</section>
+
+<!-- ============ UPLOAD + DETECTION ============ -->
+<section id="upload" class="screen">
+  <nav class="d-nav"><div class="logo" data-act="go-dash"><span class="mark">◇</span>DIMORA</div><div class="stepper"><span class="on">1 Upload</span><span id="st-detect">2 Detect</span><span>3 Generate 3D</span><span>4 Explore</span></div><button class="btn ghost sm" data-act="go-dash">✕ Close</button></nav>
+  <div class="up-wrap">
+    <div id="up-drop" class="drop">
+      <input type="file" id="file-in" accept="image/png,image/jpeg,image/webp,application/pdf,.pdf" multiple hidden>
+      <div class="drop-in" data-act="pick-file"><div class="drop-ico">⬆</div><h3>Drop your floor plan here</h3><p>JPG, PNG or PDF · single floor or multi-storey</p><p class="drop-sub">For several floors: one sheet with every floor, a multi-page PDF, or pick one image per floor</p><button class="btn primary">Choose file</button></div>
+      <div class="up-opts">
+        <label>Real width of the plan (outer wall to outer wall)<div class="inline"><input type="number" id="plan-width" min="3" max="80" step="0.1" placeholder="auto"><span>m</span></div><small>Leave blank — Gemini reads dimension labels; otherwise 12 m is assumed.</small></label>
+        <label>Storeys in the building<select id="floor-count"><option value="0">Auto-detect</option><option value="1">1 floor</option><option value="2">2 floors (G+1 / duplex)</option><option value="3">3 floors (G+2)</option><option value="4">4 floors (G+3)</option><option value="5">5 floors (G+4)</option><option value="6">6 floors (G+5)</option><option value="7">7 floors (G+6)</option><option value="8">8 floors (G+7)</option><option value="9">9 floors (G+8)</option><option value="10">10 floors (G+9)</option><option value="11">11 floors (G+10)</option><option value="12">12 floors (G+11)</option><option value="13">13 floors (G+12)</option><option value="14">14 floors (G+13)</option><option value="15">15 floors (G+14)</option></select><small>Auto reads every floor plan on the sheet (several files or PDF pages = one floor each). If the building has more storeys than plans drawn — a “typical floor” — choose the total and the top plan is repeated.</small></label>
+        <label class="tog"><input type="checkbox" id="use-ai" checked> Use Gemini AI vision to read labels, doors, stairs &amp; windows</label><small id="ai-note" class="muted" style="margin-top:-10px"></small>
+        <div class="row"><button class="btn ghost" data-act="sample-plan">Sample 2BHK (1 floor)</button><button class="btn ghost" data-act="sample-duplex">Sample duplex (G+1)</button></div>
+      </div>
+    </div>
+    <div id="up-result" class="up-result" hidden>
+      <div class="up-img"><div id="det-tools" class="det-tools" hidden><div class="seg sm"><button data-act="det-tool" data-t="select" class="on">Select / move</button><button data-act="det-tool" data-t="room">＋ Room</button><button data-act="det-tool" data-t="door">＋ Door</button><button data-act="det-tool" data-t="window">＋ Window</button></div><button class="btn sm ghost" data-act="det-del" title="Delete the selected item (Del)">🗑 Delete</button><span id="det-hint" class="hint">Click a room, door or window to select it. Drag a room to move it.</span></div><div id="up-stage" class="stage"><img id="up-img" alt="Uploaded floor plan"><svg id="up-ov"></svg><div class="scan"></div></div></div>
+      <div class="up-side">
+        <h3>AI detection</h3>
+        <div id="det-floors" class="det-floors"></div>
+        <div id="det-counts" class="det-counts"></div>
+        <ul id="det-log" class="det-log"></ul>
+        <div id="det-rooms" class="det-rooms"></div>
+        <div class="row end"><button class="btn ghost" data-act="new-upload">Try another</button><button class="btn primary" id="btn-gen" data-act="generate" disabled>Generate 3D model →</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WORKSPACE ============ -->
+<section id="work" class="screen">
+  <header class="topbar">
+    <button class="logo sm" type="button" data-act="go-dash" title="Back to projects" aria-label="Back to projects"><span class="mark">◇</span></button>
+    <input id="proj-name" class="pname" data-act-change="rename-project" aria-label="Project name">
+    <div class="seg" id="view-seg"><button data-act="view" data-v="2d">2D Plan</button><button data-act="view" data-v="3d">3D</button><button data-act="view" data-v="walk">Walk</button></div>
+    <div class="top-stats" id="top-stats"></div>
+    <button class="btn sm studio-tools-toggle" type="button" data-act="studio-tools" aria-expanded="false" aria-controls="vp-3d">Tools</button>
+    <div class="grow"></div>
+    <button class="icon-btn" data-act="undo" title="Undo (Ctrl+Z)">↶</button><button class="icon-btn" data-act="redo" title="Redo">↷</button>
+    <span id="gemma-badge" class="gbadge" data-act="settings"></span>
+    <span id="sync-chip" class="sync-chip" hidden></span>
+    <button class="btn sm ghost" data-act="save-variant">＋ Save variant</button>
+    <button class="btn sm primary tour-btn" data-act="tour">▶ AI Home Tour</button>
+    <button class="icon-btn" data-act="toggle-chat" title="Aria assistant">💬</button>
+    <button class="icon-btn" data-act="settings" title="Settings">⚙</button>
+    <button class="uchip" data-act="account" title="Account"></button>
+  </header>
+  <div class="work-body">
+    <nav class="rail" id="rail">
+      <button data-act="panel" data-p="design"><i>🎨</i><span>Design</span></button>
+      <button data-act="panel" data-p="furniture"><i>🛋️</i><span>Furniture</span></button>
+      <button data-act="panel" data-p="space"><i>📐</i><span>Space</span></button>
+      <button data-act="panel" data-p="budget"><i>₹</i><span>Budget</span></button>
+      <button data-act="panel" data-p="light"><i>☀️</i><span>Light</span></button>
+      <button data-act="panel" data-p="transform"><i>✨</i><span>Transform</span></button>
+      <button data-act="panel" data-p="arch"><i>🏛️</i><span>Structure</span></button>
+      <button data-act="panel" data-p="compare"><i>⚖️</i><span>Compare</span></button>
+      <button data-act="panel" data-p="report"><i>📄</i><span>Report</span></button>
+    </nav>
+    <aside class="side" id="side"><div id="side-body"></div></aside>
+    <main id="viewport" class="viewport">
+      <canvas id="gl" role="img" aria-label="Interactive 3D view of the house and neighbourhood"></canvas>
+      <div id="walk-pad" class="walk-pad" aria-label="Walk controls"><button data-k="arrowup" aria-label="Walk forward">▲</button><button data-k="arrowleft" aria-label="Turn left">◀</button><button data-k="arrowdown" aria-label="Walk back">▼</button><button data-k="arrowright" aria-label="Turn right">▶</button></div>
+      <figure id="rendered-view" class="rendered-view">
+        <img alt="" width="1040" height="660">
+        <figcaption>
+          <div><b id="rendered-caption" aria-live="polite">House exterior</b><span>Sample render · live 3D requires WebGL2</span></div>
+          <button class="btn sm" id="rendered-room" type="button" data-act="rendered-room" aria-pressed="false">Living room</button>
+        </figcaption>
+      </figure>
+      <div id="gl-fallback" class="gl-fallback"><h3>3D needs WebGL2</h3><p></p></div>
+      <div id="plan2d" class="plan2d"></div>
+      <div id="labels" class="labels"></div>
+      <nav id="flow-nav" class="flow-nav" hidden aria-label="House and floor views"></nav>
+      <section id="exterior-controls" class="exterior-controls" hidden aria-label="Exterior exploration">
+        <div class="exterior-heading">
+          <span id="exterior-caption" aria-live="polite">House exterior</span>
+          <div class="exterior-light" role="group" aria-label="Lighting">
+            <button type="button" data-act="exterior-light" data-hour="10" aria-pressed="false">Day</button>
+            <button type="button" data-act="exterior-light" data-hour="17.2" aria-pressed="false">Golden hour</button>
+            <button type="button" data-act="exterior-light" data-hour="19" aria-pressed="false">Dusk</button>
+          </div>
+        </div>
+        <div class="exterior-stops" role="group" aria-label="Exterior locations">
+          <button type="button" data-act="exterior-stop" data-stop="ext" aria-pressed="true">House</button>
+          <button type="button" data-act="exterior-stop" data-stop="garage" aria-pressed="false" hidden>Garage</button>
+          <button type="button" data-act="exterior-stop" data-stop="garden" aria-pressed="false">Garden</button>
+          <button type="button" data-act="exterior-stop" data-stop="street" aria-pressed="false">Street</button>
+          <button type="button" data-act="exterior-stop" data-stop="area" aria-pressed="false">Block</button>
+          <button type="button" data-act="exterior-stop" data-stop="shops" aria-pressed="false">Shops</button>
+        </div>
+      </section>
+      <div class="vp-tools tl" id="vp-3d">
+        <div class="seg sm"><button data-act="preset" data-v="iso">Iso</button><button data-act="preset" data-v="top">Top</button><button data-act="preset" data-v="front">Front</button><button data-act="preset" data-v="side">Side</button></div>
+        <button class="chip-t make-real" data-act="make-real" id="t-real" title="Gemini turns this exact view into a photorealistic photo">✨ Make it Real</button><button class="chip-t sc-chip" data-act="showcase" id="t-show" title="A cinematic scroll story of this home to share with buyers">🎬 Showcase</button><button class="chip-t" data-act="summary" id="t-sum" title="Room list with areas, sunlight & Vastu hints, PDF / GLB export and a share link">📋 Summary</button><button class="chip-t" data-act="ideas" id="t-ideas" title="Gemini suggests 3 different design ideas you can preview">💡 3 ideas</button><button class="chip-t" data-act="toggle-cut" id="t-cut">Cutaway</button><button class="chip-t" data-act="toggle-roof" id="t-roof" title="Show the finished house with its roof terrace and parapet">Roof</button><button class="chip-t on" data-act="toggle-labels" id="t-lab">Labels</button><button class="chip-t" data-act="toggle-sun" id="t-sun">Sun via windows</button><button class="chip-t walk-out" data-act="walk-outside" title="Walk around the outside of the house at eye level">🚶 Walk outside</button><button class="chip-t kbd" data-act="kbd-help" title="W A S D / arrows: glide · Q E: circle · Z X: zoom · T G: tilt · Shift: faster">⌨ Controls</button>
+        <div id="floor-seg" class="seg sm floor-seg"></div>
+      </div>
+      <div class="vp-tools tl" id="vp-2d">
+        <div class="seg sm"><button data-tool="select" data-act="tool" data-t="select" class="on">Select</button><button data-tool="room" data-act="tool" data-t="room">＋ Room</button><button data-tool="door" data-act="tool" data-t="door">＋ Door</button><button data-tool="window" data-act="tool" data-t="window">＋ Window</button></div>
+        <div class="seg sm"><button data-act="overlay" data-o="none">Plain</button><button data-act="overlay" data-o="heat">Daylight</button><button data-act="overlay" data-o="air">Airflow</button><button data-act="overlay" data-o="space">Unused space</button><button data-act="overlay" data-o="graph">Connectivity</button></div>
+        <div id="floor-seg-2d" class="seg sm floor-seg"></div>
+        <span id="tool-hint" class="hint"></span>
+      </div>
+      <div class="vp-time"><span>☀</span><input type="range" aria-label="Time of day" id="time-slider" min="5" max="22" step="0.1" value="10"><b id="time-label">10:00 AM</b><button class="chip-t" data-act="play-day">▶ Day</button></div>
+      <div class="compass" title="North"><div id="compass-needle"><span>▲</span><em>N</em></div></div>
+      <div id="walk-hud" class="walk-hud"><span class="desktop-walk-hint">WASD or arrows to walk. Drag to look.</span><span class="touch-walk-hint">Hold arrows to walk. Drag to look.</span></div>
+      <div id="inspector" class="inspector"></div>
+      <!-- tour overlay -->
+      <div id="tour" class="tour">
+        <div class="tour-top"><div id="tour-room" class="tour-room"></div><div id="tour-chips" class="tour-chips"></div><button class="btn sm ghost" data-act="tour-stop">✕ End tour</button></div>
+        <div class="tour-bottom">
+          <div class="aria-avatar big"><div class="face"><i></i><i></i><b></b></div><div class="ring"></div></div>
+          <div class="tour-cap"><div id="tour-caption" class="cap"></div><div class="tour-ctrl"><button data-act="tour-prev" title="Previous room">⏮</button><button id="tour-play" data-act="tour-play" title="Pause / play">❚❚</button><button data-act="tour-next" title="Next room">⏭</button><button id="tour-voice" data-act="tour-voice" title="Voice on/off">🔊</button><span id="tour-status" class="muted"></span></div></div>
+        </div>
+        <div class="tour-side"><div id="tour-map" class="tour-map"></div><h4>Make changes here</h4><div id="tour-edit"></div>
+          <form class="tour-ask" data-form="tour-ask"><input id="tour-ask-in" placeholder="Ask Aria: “make this room cosier”…"><button class="btn sm primary">Ask</button></form></div>
+      </div>
+    </main>
+    <aside class="chat" id="chat">
+      <div class="chat-head"><div class="aria-avatar"><div class="face"><i></i><i></i><b></b></div></div><div><b>Aria</b><small id="chat-engine">AI Home Assistant</small></div><button class="icon-btn" data-act="toggle-chat">✕</button></div>
+      <div id="chat-log" class="chat-log"></div>
+      <div id="chat-sugg" class="chat-sugg"></div>
+      <form class="chat-in" data-form="chat"><input id="chat-input" placeholder="Tell Aria what to change…" autocomplete="off"><button class="btn primary sm">Send</button></form>
+    </aside>
+  </div>
+</section>
+
+<!-- modals -->
+<div id="modal" class="modal"><div class="modal-card" id="modal-card"></div></div>
+<div id="report" class="report-wrap"></div>
+<div id="toasts" class="toasts"></div>
+</div>
+<script src="js/app.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

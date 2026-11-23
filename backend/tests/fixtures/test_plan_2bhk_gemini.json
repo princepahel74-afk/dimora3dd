@@ -1,0 +1,43 @@
+{
+  "house": {"width_ft": 36, "depth_ft": 40, "storeys": 1},
+  "plot": {"x": -4, "y": -8, "w": 44, "d": 66},
+  "north": "up",
+  "road_side": "S",
+  "ceiling_ft": 10,
+  "walls": {"outer_in": 9, "inner_in": 4.5},
+  "rooms": [
+    {"name": "Bedroom 2", "type": "bedroom", "x": 0, "y": 0, "w": 18, "d": 12},
+    {"name": "Bedroom 1", "type": "bedroom", "x": 0, "y": 12, "w": 18, "d": 12},
+    {"name": "Living Room", "type": "living", "x": 0, "y": 24, "w": 18, "d": 16},
+    {"name": "Passage", "type": "passage", "x": 18, "y": 0, "w": 6, "d": 28},
+    {"name": "Dining", "type": "dining", "x": 18, "y": 28, "w": 18, "d": 12},
+    {"name": "Store / Utility", "type": "store", "x": 24, "y": 0, "w": 12, "d": 6},
+    {"name": "Toilet 2", "type": "toilet", "x": 24, "y": 6, "w": 12, "d": 6},
+    {"name": "Bathroom", "type": "bathroom", "x": 24, "y": 12, "w": 12, "d": 6},
+    {"name": "Kitchen", "type": "kitchen", "x": 24, "y": 18, "w": 12, "d": 10},
+    {"name": "Balcony", "type": "balcony", "x": 0, "y": -4.5, "w": 18, "d": 4.5, "railing": true},
+    {"name": "Porch / Sit-out", "type": "porch", "x": 2, "y": 40, "w": 14, "d": 4, "steps": 3},
+    {"name": "Parking", "type": "parking", "x": 20, "y": 40.5, "w": 19, "d": 17, "cars": 1},
+    {"name": "Front Garden", "type": "garden", "x": -3.5, "y": 44.5, "w": 21, "d": 13, "trees": [{"x": -0.5, "y": 47.3}, {"x": -0.5, "y": 54.7}, {"x": 14.5, "y": 54.7}]},
+    {"name": "Back Garden", "type": "garden", "x": 18.5, "y": -7.5, "w": 21, "d": 7, "trees": [{"x": 36, "y": -4}]}
+  ],
+  "open_areas": [["Living Room", "Dining", "Passage"]],
+  "doors": [
+    {"x": 7.2, "y": 40, "width_ft": 3.5, "kind": "main", "rooms": ["Living Room", "Porch / Sit-out"]},
+    {"x": 6.9, "y": 0, "width_ft": 6, "kind": "sliding", "rooms": ["Bedroom 2", "Balcony"]},
+    {"x": 18, "y": 6.7, "width_ft": 3, "kind": "hinged", "rooms": ["Bedroom 2", "Passage"]},
+    {"x": 18, "y": 16.6, "width_ft": 3, "kind": "hinged", "rooms": ["Bedroom 1", "Passage"]},
+    {"x": 24, "y": 3.4, "width_ft": 2.5, "kind": "hinged", "rooms": ["Store / Utility", "Passage"]},
+    {"x": 24, "y": 9.4, "width_ft": 2.5, "kind": "hinged", "rooms": ["Toilet 2", "Passage"]},
+    {"x": 24, "y": 15.4, "width_ft": 2.5, "kind": "hinged", "rooms": ["Bathroom", "Passage"]},
+    {"x": 24, "y": 24.7, "width_ft": 3, "kind": "hinged", "rooms": ["Kitchen", "Passage"]}
+  ],
+  "windows": [
+    {"x": 14.5, "y": 0, "width_ft": 3}, {"x": 30, "y": 0, "width_ft": 3},
+    {"x": 0, "y": 7.1, "width_ft": 4}, {"x": 0, "y": 19.1, "width_ft": 4}, {"x": 0, "y": 32.7, "width_ft": 5},
+    {"x": 36, "y": 8.6, "width_ft": 2}, {"x": 36, "y": 14.9, "width_ft": 2}, {"x": 36, "y": 23.2, "width_ft": 4}, {"x": 36, "y": 34.6, "width_ft": 5},
+    {"x": 14, "y": 40, "width_ft": 4}, {"x": 27.6, "y": 40, "width_ft": 5}
+  ],
+  "gate": {"x": 29.5, "y": 58, "width_ft": 19},
+  "notes": "2BHK single-storey ground floor, 36 x 40 ft, 1440 sq ft built-up, road on the south."
+}
